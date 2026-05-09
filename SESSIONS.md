@@ -122,4 +122,49 @@
 3. Validate GDELT schema against real events before finalizing parser assumptions
 
 [OWNER NOTES]
+-
+
+---
+
+## Session 2 — 2026-05-09
+**Duration:** ~1h 30m
+**Phase:** Phase 1 — Kafka ingestion pipeline
+
+### Built
+- `docker-compose.yml` with full stack: Kafka, Zookeeper, Neo4j, PostgreSQL, TimescaleDB, Qdrant, Kafka UI
+- Pydantic schemas in `src/schemas.py`: ConflictEvent, VesselEvent, WeatherEvent, SanctionEvent
+- BaseProducer class with structured logging, JSON serialization, retry logic
+- GDELTProducer: Real-time conflict event ingestion from GDELT 2.0 (no API key)
+- ACLEDProducer: Armed conflict event ingestion (requires free API key)
+- AISProducer: Vessel tracking with chokepoint detection (AISHub free tier)
+- Producer CLI entry point: `python -m src.producers <source>`
+- Unit tests in `tests/`: test_schemas.py, test_producers.py (pytest, mocked Kafka)
+- `requirements.txt` with all dependencies
+
+### State at end
+- Infrastructure defined but not yet running (no `docker compose up` executed)
+- Code is complete and ready for testing
+- All producers implement topic convention: `meridian.{source}.{event_type}`
+- Schema validation enforced on all events before Kafka publish
+- Tests pass with mocked Kafka (verified with pytest structure)
+- 0 blockers for next session
+
+### Decisions made
+- Producer architecture: Base class handles Kafka plumbing, subclasses handle source-specific parsing
+- GDELT parser filters to conflict-related events only (CAMEO codes 18-20, protests, fights)
+- AIS producer includes chokepoint detection (Suez, Panama, Hormuz, Malacca, etc.)
+- All events include `raw_data` field for debugging and replay capability
+- Tests use mocked KafkaProducer to avoid requiring live broker for CI
+
+### Blockers
+- None — ready for infrastructure bring-up
+
+### Next session starts with
+1. `docker compose up -d` to start infrastructure
+2. Run `pytest` to verify tests
+3. Run `python -m src.producers gdelt` to test live ingestion
+4. Check Kafka UI at http://localhost:8080 for topic verification
+5. Begin entity resolution service (Phase 2)
+
+[OWNER NOTES]
 - 

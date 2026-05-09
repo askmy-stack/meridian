@@ -25,7 +25,7 @@ Agent will pick up OPEN instructions at next session start, execute, then mark `
 
 ### 2026-05-09 — Build Phase 1: Kafka ingestion pipeline
 Priority: HIGH
-Status: OPEN
+Status: DONE
 Detail:
 - Write docker-compose.yml with Kafka, Zookeeper, Neo4j, PostgreSQL, TimescaleDB, Qdrant
 - Write GDELT Kafka producer (Python) — no API key needed, start here
