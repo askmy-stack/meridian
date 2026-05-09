@@ -163,8 +163,51 @@
 1. `docker compose up -d` to start infrastructure
 2. Run `pytest` to verify tests
 3. Run `python -m src.producers gdelt` to test live ingestion
-4. Check Kafka UI at http://localhost:8080 for topic verification
+4. Check Kafka UI at http://localhost:8081 for topic verification
 5. Begin entity resolution service (Phase 2)
+
+[OWNER NOTES]
+-
+
+---
+
+## Session 3 — 2026-05-09
+**Duration:** ~1h 15m
+**Phase:** Phase 1 complete — Testing and bug fixes
+
+### Built
+- Started infrastructure: `docker compose up -d` — all services healthy
+- Fixed GDELT producer bugs:
+  - GDELT files have no CSV header — added explicit GDELT_COLUMNS mapping
+  - CSV inside ZIP is plain text, not gzipped — removed gzip.decompress
+  - Added case-insensitive CSV file detection in ZIP archives
+- Fixed pytest issues:
+  - Added 'six' dependency for kafka-python compatibility
+  - Updated test assertions to match actual CAMEO code mappings
+- Verified tests: 24 passed, 1 skipped
+- Live GDELT test: Successfully published 9,374 conflict events from 2024-01-15 to Kafka
+- Kafka UI accessible at http://localhost:8081
+- All changes committed and pushed to GitHub
+
+### State at end
+- Infrastructure running: Kafka, Neo4j, PostgreSQL, TimescaleDB, Qdrant, Kafka UI
+- GDELT producer fully functional — tested with real historical data
+- Topics created: `meridian.gdelt.conflict`, `meridian.gdelt.protest`, etc.
+- 9,374 GDELT events in Kafka from single day (2024-01-15)
+- Code validated and committed
+
+### Decisions made
+- Kafka UI port changed from 8080→8081 (port conflict with n8n)
+- GDELT 1.0/2.0 format uses 57 fixed columns, no header row
+
+### Blockers
+- None — ready for Phase 2
+
+### Next session starts with
+1. Begin Phase 2: Entity resolution service
+2. Design Neo4j graph schema for supply chain entities
+3. Create Kafka consumer for entity resolution
+4. Build Cypher queries for relationship mapping
 
 [OWNER NOTES]
 - 
