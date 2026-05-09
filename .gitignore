@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs and runtime data
+*.log
+logs/
+tmp/
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Data and model artifacts
+data/raw/
+data/processed/
+models/
+mlruns/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.next/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
