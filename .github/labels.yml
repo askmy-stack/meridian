@@ -1,0 +1,62 @@
+# Labels managed by github-label-sync (or similar).
+# Apply with: npx github-label-sync --labels .github/labels.yml askmy-stack/meridian
+
+- name: bug
+  color: "d73a4a"
+  description: "Something isn't working"
+
+- name: enhancement
+  color: "1f77b4"
+  description: "New feature or request"
+
+- name: documentation
+  color: "9c27b0"
+  description: "Improvements or additions to documentation"
+
+- name: good first issue
+  color: "2cbe4e"
+  description: "Good for newcomers"
+
+- name: help wanted
+  color: "f9d71c"
+  description: "Extra attention is needed"
+
+- name: breaking change
+  color: "b60205"
+  description: "Changes that break existing behavior"
+
+- name: security
+  color: "ee0701"
+  description: "Security-related issue"
+
+- name: phase-1
+  color: "ededed"
+  description: "Phase 1 — Ingestion"
+
+- name: phase-2
+  color: "ededed"
+  description: "Phase 2 — Entity resolution / graph"
+
+- name: phase-3
+  color: "ededed"
+  description: "Phase 3 — Intelligence / ML"
+
+- name: phase-4
+  color: "ededed"
+  description: "Phase 4 — Simulation / alerting"
+
+- name: phase-5
+  color: "ededed"
+  description: "Phase 5 — Frontend / API"
+
+- name: phase-6
+  color: "ededed"
+  description: "Phase 6 — Infra / deployment"
+
+- name: needs-triage
+  color: "fbca04"
+  description: "Awaiting maintainer review"
+
+- name: blocked
+  color: "000000"
+  description: "Blocked on another issue or external dependency"

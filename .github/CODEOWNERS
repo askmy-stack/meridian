@@ -1,0 +1,14 @@
+# Default owner — everything not otherwise matched
+* @askmy-stack
+
+# Documentation
+/AGENTS.md       @askmy-stack
+/ARCHITECTURE.md @askmy-stack
+/DECISIONS.md    @askmy-stack
+/SESSIONS.md     @askmy-stack
+
+# Critical security surfaces — extra eyes required
+/src/api/auth/   @askmy-stack
+/SECURITY.md     @askmy-stack
+/terraform/      @askmy-stack
+/.github/        @askmy-stack

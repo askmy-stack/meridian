@@ -1,8 +1,27 @@
 # Meridian
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 **Real-time supply chain risk intelligence powered by geopolitical signals, AIS vessel tracking, and a live knowledge graph.**
 
 > Point Meridian at your supplier list. Get risk scores, disruption simulations, and alternative sourcing recommendations — backed by live satellite, shipping, and conflict data.
+
+## Project status
+
+| Phase | Scope | Status |
+|-------|-------|--------|
+| 1 | Kafka ingestion (GDELT / ACLED / AIS) | ✅ Stable — 24 unit tests |
+| 2 | Entity resolution + Neo4j knowledge graph | 🔄 In progress |
+| 3 | Intelligence engine (BERT / XGBoost / NER) | 🟡 Built, needs ML test coverage |
+| 4 | Simulation + alerting (Monte Carlo / BFS / Slack) | 🟡 Built, partial tests |
+| 5 | Frontend dashboard + JWT auth | 🟡 Functional, polishing |
+| 6 | Production deployment (Terraform / CI/CD) | 🟡 IaC complete, untested in cloud |
+
+📖 **New here?** Start with [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — get an event flowing through the pipeline in 5 minutes.
+🤝 **Want to contribute?** Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and check the [good first issues](https://github.com/askmy-stack/meridian/labels/good%20first%20issue).
 
 ---
 

@@ -47,3 +47,11 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Audit / generated artifacts
+test_results.html
+test_results/
+*.test-output.json
+
+# Local-only AI agent transcripts
+.claude/

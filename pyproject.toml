@@ -1,0 +1,59 @@
+[project]
+name = "meridian"
+version = "0.1.0"
+description = "Supply Chain Geopolitical Risk Intelligence Platform"
+requires-python = ">=3.11,<3.13"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "Abhinaysai Kamineni", email = "kamineniabhinaysai@gmail.com" },
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["frontend", "terraform", ".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+    "UP",  # pyupgrade
+    "N",   # naming
+    "S",   # bandit-lite security
+]
+ignore = [
+    "E501",  # line length handled by formatter
+    "S101",  # asserts in tests are fine
+    "S105",  # hardcoded passwords detected in test files
+    "S106",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "B011"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+extend-exclude = "frontend|terraform|\\.venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+markers = [
+    "integration: requires docker compose stack",
+    "slow: long-running tests (> 5s)",
+]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+disallow_untyped_defs = false  # ramp up gradually
+exclude = ["frontend/", "terraform/", "\\.venv/"]
+
+[[tool.mypy.overrides]]
+module = ["src.api.*", "src.schemas"]
+disallow_untyped_defs = true

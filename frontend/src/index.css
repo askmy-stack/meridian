@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Meridian */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Mapbox GL custom styles */
+.mapboxgl-map {
+  font-family: inherit;
+}
+
+/* Risk score colors */
+.risk-none { color: #10b981; }
+.risk-low { color: #3b82f6; }
+.risk-medium { color: #f59e0b; }
+.risk-high { color: #f97316; }
+.risk-critical { color: #ef4444; }
+
+/* Animation for loading states */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
