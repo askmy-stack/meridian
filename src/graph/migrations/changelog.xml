@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<changelog xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://www.liquigraph.org/schema/1.0/liquigraph.xsd">
+    <changeset id="001-create-supplier-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT supplier_id IF NOT EXISTS
+            FOR (s:Supplier) REQUIRE s.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX supplier_name IF NOT EXISTS
+            FOR (s:Supplier) ON (s.name)
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX supplier_country IF NOT EXISTS
+            FOR (s:Supplier) ON (s.country_iso)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="002-create-port-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT port_id IF NOT EXISTS
+            FOR (p:Port) REQUIRE p.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE CONSTRAINT port_locode IF NOT EXISTS
+            FOR (p:Port) REQUIRE p.locode IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX port_name IF NOT EXISTS
+            FOR (p:Port) ON (p.name)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="003-create-chokepoint-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT chokepoint_id IF NOT EXISTS
+            FOR (c:Chokepoint) REQUIRE c.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX chokepoint_name IF NOT EXISTS
+            FOR (c:Chokepoint) ON (c.name)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="004-create-region-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT region_id IF NOT EXISTS
+            FOR (r:Region) REQUIRE r.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX region_country_iso IF NOT EXISTS
+            FOR (r:Region) ON (r.country_iso)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="005-create-route-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT route_id IF NOT EXISTS
+            FOR (r:Route) REQUIRE r.id IS UNIQUE
+        ]]></query>
+    </changeset>
+    
+    <changeset id="006-create-carrier-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT carrier_id IF NOT EXISTS
+            FOR (c:Carrier) REQUIRE c.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX carrier_name IF NOT EXISTS
+            FOR (c:Carrier) ON (c.name)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="007-create-sku-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT sku_id IF NOT EXISTS
+            FOR (s:SKU) REQUIRE s.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX sku_hs_code IF NOT EXISTS
+            FOR (s:SKU) ON (s.hs_code)
+        ]]></query>
+    </changeset>
+    
+    <changeset id="008-create-relationships" author="meridian">
+        <query><![CDATA[
+            CREATE INDEX located_in_rel IF NOT EXISTS
+            FOR ()-[r:LOCATED_IN]-() ON (r.since)
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX ships_via_rel IF NOT EXISTS
+            FOR ()-[r:SHIPS_VIA]-() ON (r.volume_pct)
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX on_route_rel IF NOT EXISTS
+            FOR ()-[r:ON_ROUTE]-() ON (r.sequence)
+        ]]></query>
+    </changeset>
+</changelog>

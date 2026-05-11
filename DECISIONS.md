@@ -133,11 +133,35 @@ Decisions are immutable once logged. To reverse a decision, add a new entry mark
 
 ---
 
+### D-011 — 2026-05-09 — Liquigraph for Neo4j schema versioning
+**Status:** Active
+**Decision:** Use Liquigraph for Neo4j schema migrations and version control.
+**Rationale:** Purpose-built for Neo4j migration management. Provides migration chaining, rollback support, and repeatable deployments. Chosen over manual Cypher scripts because schema evolution is expected as the knowledge graph grows (new entity types, relationship indexes, constraint changes). Learning curve is acceptable given the benefits.
+**Migration files location:** `src/graph/migrations/`
+**Changelog format:** XML with Cypher changesets
+**Owner:** Abhinaysai
+
+---
+
+### D-012 — 2026-05-09 — All three supplier data input methods
+**Status:** Active
+**Decision:** Support CSV upload, REST API, and manual web form for supplier data input.
+**Rationale:** Maximum flexibility for diverse user base. CSV for bulk ERP exports (most common), API for real-time integrations (enterprise users), form for small networks (non-technical users). Builds complete product from start rather than adding incrementally.
+**Implementation order:**
+1. CSV upload (Phase 2, Week 1-2) — pandas + Pydantic validation
+2. REST API (Phase 2, Week 3-4) — FastAPI + Neo4j driver
+3. Manual form (Phase 3) — React + React Hook Form
+**Resources:**
+- Pandas: https://pandas.pydata.org/docs/reference/api/pandas.read_csv.html
+- FastAPI CRUD: https://fastapi.tiangolo.com/tutorial/sql-databases/
+- React Hook Form: https://react-hook-form.com/get-started
+**Owner:** Abhinaysai
+
+---
+
 ## PENDING DECISIONS (need resolution before build)
 
 | # | Decision needed | Options | Deadline |
 |---|---|---|---|
-| P-001 | Graph schema versioning — how to handle schema migrations in Neo4j | Liquigraph / manual Cypher migration scripts / versioned snapshots | Before Phase 2 |
 | P-002 | Multi-tenant vs. single-tenant for open-source version | Single tenant (simpler) / multi-tenant with org isolation | Before Phase 5 |
-| P-003 | Supplier data input format | CSV upload / API / manual form / all three | Before Phase 2 |
 | P-004 | Alert deduplication strategy | Time-window dedup / content hash / severity threshold | Before Phase 4 |
