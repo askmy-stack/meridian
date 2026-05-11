@@ -136,6 +136,9 @@ pip install -r requirements.txt
 # Run tests
 make test-unit
 
+# Seed demo data (suppliers, ports, disruption scenarios)
+make seed-all
+
 # Start API (Terminal 1)
 uvicorn src.api.main:app --reload
 
@@ -145,7 +148,7 @@ npm install
 npm run dev
 
 # Open services
-open http://localhost:5173    # React dashboard
+open http://localhost:5173    # React dashboard (with live supplier data)
 open http://localhost:8000/docs # API documentation
 open http://localhost:7474      # Neo4j browser (neo4j/meridian_password)
 ```

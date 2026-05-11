@@ -62,6 +62,11 @@ typecheck:  ## Run mypy
 seed:  ## Seed Neo4j with ports / chokepoints
 	$(PY) -m src.seeding.ports_chokepoints
 
+seed-suppliers:  ## Seed Neo4j with demo supplier data
+	$(PY) scripts/seed_suppliers.py --file data/sample_suppliers.csv
+
+seed-all: seed seed-suppliers  ## Seed all demo data (ports + suppliers)
+
 validate-env:  ## Validate required env vars
 	$(PY) scripts/validate_env.py --env-file .env
 
