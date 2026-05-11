@@ -52,6 +52,7 @@ class Alert:
     # Risk data
     risk_score: Optional[float] = None
     risk_category: Optional[str] = None
+    impact_summary: Optional[str] = None
     
     # Recommendations
     recommendations: List[str] = field(default_factory=list)
@@ -70,6 +71,7 @@ class Alert:
             "event_id": self.event_id,
             "risk_score": self.risk_score,
             "risk_category": self.risk_category,
+            "impact_summary": self.impact_summary,
             "recommendations": self.recommendations,
             "timestamp": self.timestamp
         }

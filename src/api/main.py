@@ -401,7 +401,7 @@ async def get_network_graph(
             MATCH (s:Supplier)
             OPTIONAL MATCH (s)-[r]->(n)
             RETURN s, collect(DISTINCT n) as neighbors, collect(DISTINCT r) as relationships
-            ORDER BY s.risk_score DESC NULLS LAST
+            ORDER BY s.risk_score DESC
             LIMIT 50
             """
             result = client.execute_query(query)
