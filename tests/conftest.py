@@ -12,8 +12,23 @@ Run a subset:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(autouse=True)
+def _isolate_alert_persistence(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Prevent .data/alerts.json from leaking across tests using TestClient(app)."""
+    alert_file = tmp_path / "alerts.json"
+    alert_file.write_text("[]", encoding="utf-8")
+    monkeypatch.setenv("MERIDIAN_ALERTS_FILE", str(alert_file))
+
+    from src.alerting import persistence as persistence_mod
+    from src.alerting import slack as slack_mod
+
+    persistence_mod._store = None  # type: ignore[attr-defined]
+    slack_mod._service = None  # type: ignore[attr-defined]
 
 
 @pytest.fixture(autouse=True)

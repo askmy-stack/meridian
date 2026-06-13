@@ -16,15 +16,13 @@ def client(monkeypatch: pytest.MonkeyPatch):
     httpx = pytest.importorskip("httpx")  # noqa: F841
     fastapi_testclient = pytest.importorskip("fastapi.testclient")
 
-    # Reset the alerting singleton so history is clean
     from src.alerting import slack as slack_mod
     slack_mod._service = None  # type: ignore[attr-defined]
 
-    # Reload routes module to pick up fresh service binding
     from src.api import main as main_mod
     importlib.reload(main_mod)
 
-    return fastapi_testclient.TestClient(main_mod.app)
+    yield fastapi_testclient.TestClient(main_mod.app)
 
 
 def test_list_alerts_empty(client) -> None:
