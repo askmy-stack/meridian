@@ -68,7 +68,10 @@ seed-suppliers:  ## Seed Neo4j with demo supplier data
 seed-demo:  ## Seed demo disruption events for digest/alerts narrative
 	$(PY) scripts/seed_demo_scenarios.py
 
-seed-all: seed seed-suppliers seed-demo  ## Seed all demo data (ports + suppliers + events)
+seed-routes:  ## Seed Route topology (Port→Route→Chokepoint)
+	$(PY) scripts/seed_routes.py
+
+seed-all: seed seed-suppliers seed-demo seed-routes  ## Seed all demo data (ports + suppliers + events + routes)
 
 ingest-gdelt:  ## Publish latest GDELT conflict events to Kafka
 	$(PY) -m src.producers gdelt

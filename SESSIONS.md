@@ -250,3 +250,36 @@
 
 [OWNER NOTES]
 -
+
+---
+## Session 5 — 2026-06-13
+**Duration:** ~1h
+**Phase:** Roadmap phase next — graph routes, causal alerts, SCRI UI
+
+### Built
+- `scripts/seed_routes.py` + `make seed-routes` — Route topology (Port→Route→Chokepoint)
+- Liquigraph `:Event` constraints/indexes in `changelog.xml`
+- DoWhy causal context wired into `pipeline_refresh` high-severity alerts
+- Alerts API + AlertsView causal badges/tooltips (association vs verified)
+- EntityDrawer SHAP fix (`explanations` not `shap_features`) + SCRI labels + TGN forecast
+- SuppliersView TGN trajectory (7/14/30d) + SCRI methodology tooltips
+
+### State at end
+- PR `feat/roadmap-phase-next` ready for review (not merged)
+- Unit tests pass without Neo4j
+
+### Decisions made
+- Causal metadata on all pipeline alerts uses graph-wide association assessment (D-005)
+- `seed-all` now includes routes after ports/suppliers/events
+
+### Blockers
+- Public deploy (Vercel + Railway) still deferred
+
+### Next session starts with
+1. Public deploy prep or README deploy section
+2. RiskMapView / SimulationView SCRI polish
+3. TGN forecaster CSV snapshot fallback when Neo4j offline
+4. Record demo GIF
+
+[OWNER NOTES]
+-
