@@ -126,7 +126,7 @@ Topic convention: `meridian.{source}.{event_type}`
 | Streaming | Apache Kafka |
 | Graph | Neo4j 5 |
 | API | FastAPI, JWT, structlog |
-| ML | XGBoost, SHAP (MLflow training planned) |
+| ML | XGBoost, SHAP, MLflow-tracked training |
 | Frontend | React 18, Vite, MapLibre / optional Mapbox, Recharts |
 | CI | GitHub Actions (Neo4j + pytest + frontend build) |
 
@@ -171,9 +171,9 @@ meridian/
 | Portfolio demo (map, simulator, copilot, CI) | ✅ Shipped |
 | GDELT → Kafka → Neo4j pipeline | ✅ Shipped |
 | Public deploy (Vercel + Railway) | 🔜 Next |
-| MLflow-tracked XGBoost training | Planned |
-| ACLED + AIS in `pipeline_refresh` | Planned |
-| TGN + DoWhy causal layer | Research |
+| MLflow-tracked XGBoost training | ✅ Shipped |
+| ACLED + AIS in `pipeline_refresh` | ✅ Shipped |
+| TGN + DoWhy causal layer | 🟡 MVP shipped (forecast API, DoWhy wrapper, BFS Monte Carlo); full TGN training still research |
 
 Good first issues: [labels/good first issue](https://github.com/askmy-stack/meridian/labels/good%20first%20issue)
 
