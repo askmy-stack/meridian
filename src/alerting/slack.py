@@ -56,6 +56,12 @@ class Alert:
     
     # Recommendations
     recommendations: List[str] = field(default_factory=list)
+
+    # Causal inference metadata (D-005)
+    causal_claim_allowed: Optional[bool] = None
+    causal_method: Optional[str] = None
+    causal_effect_size: Optional[float] = None
+    causal_disclaimer: Optional[str] = None
     
     # Metadata
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -73,6 +79,10 @@ class Alert:
             "risk_category": self.risk_category,
             "impact_summary": self.impact_summary,
             "recommendations": self.recommendations,
+            "causal_claim_allowed": self.causal_claim_allowed,
+            "causal_method": self.causal_method,
+            "causal_effect_size": self.causal_effect_size,
+            "causal_disclaimer": self.causal_disclaimer,
             "timestamp": self.timestamp
         }
     

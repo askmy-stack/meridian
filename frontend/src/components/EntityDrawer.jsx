@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { Globe, Play, X, Zap } from 'lucide-react';
-import { fetchSupplierExplanation } from '../api/client';
+import { Globe, Play, TrendingUp, X, Zap } from 'lucide-react';
+import { fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
+import { MetricTooltip } from './ui/MetricTooltip';
 import { riskColor, riskLabel, riskPillClass } from '../lib/risk';
 
 /**
@@ -16,9 +17,16 @@ export function EntityDrawer({ entity, onClose }) {
     { enabled: Boolean(supplierId), staleTime: 120_000 },
   );
 
+  const { data: forecast } = useQuery(
+    ['supplier-forecast', supplierId],
+    () => fetchSupplierForecast(supplierId, 14),
+    { enabled: Boolean(supplierId), staleTime: 120_000 },
+  );
+
   if (!entity) return null;
 
   const score = entity.risk_score ?? explanation?.risk_score;
+  const shapFactors = explanation?.explanations ?? explanation?.shap_features ?? [];
   const mapHref = entity.coordinates
     ? `/map?lat=${entity.coordinates[1]}&lon=${entity.coordinates[0]}&highlight=${entity.id ?? ''}`
     : `/map?highlight=${entity.id ?? ''}`;
@@ -46,7 +54,14 @@ export function EntityDrawer({ entity, onClose }) {
           {typeof score === 'number' && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-slate-400">Risk score</span>
+                <span className="text-sm text-slate-400 inline-flex items-center">
+                  SCRI
+                  <MetricTooltip
+                    label="SCRI"
+                    definition="Supply Chain Risk Index — 0–100% probability-style exposure score from XGBoost + SHAP."
+                    reference="docs/METRICS.md"
+                  />
+                </span>
                 <span className={`risk-pill text-xs ${riskPillClass(score)}`}>{riskLabel(score)}</span>
               </div>
               <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
@@ -65,19 +80,50 @@ export function EntityDrawer({ entity, onClose }) {
             </p>
           )}
 
-          {explanation?.shap_features?.length > 0 && (
+          {shapFactors.length > 0 && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">SHAP drivers</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
+                SHAP drivers
+              </p>
               <ul className="space-y-2">
-                {explanation.shap_features.slice(0, 5).map((f) => (
-                  <li key={f.feature} className="flex justify-between text-sm">
-                    <span className="text-slate-400">{f.feature}</span>
-                    <span className={f.impact >= 0 ? 'text-red-400' : 'text-emerald-400'}>
-                      {f.impact >= 0 ? '+' : ''}{(f.impact * 100).toFixed(1)}%
-                    </span>
-                  </li>
-                ))}
+                {shapFactors.slice(0, 5).map((f) => {
+                  const impact = f.contribution ?? f.impact ?? 0;
+                  const label = f.description || f.feature;
+                  return (
+                    <li key={f.feature} className="flex justify-between text-sm gap-3">
+                      <span className="text-slate-400 truncate">{label}</span>
+                      <span className={impact >= 0 ? 'text-red-400 shrink-0' : 'text-emerald-400 shrink-0'}>
+                        {impact >= 0 ? '+' : ''}{(impact * 100).toFixed(1)}%
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
+            </div>
+          )}
+
+          {forecast && supplierId && (
+            <div className="rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="h-4 w-4 text-violet-400" />
+                <p className="text-xs font-semibold uppercase tracking-widest text-violet-300">
+                  {forecast.horizon_days ?? 14}-day forecast
+                </p>
+                <MetricTooltip
+                  label="TGN forecast"
+                  definition="Research-track risk trajectory — complements SCRI point score, not a replacement."
+                  reference={forecast.methodology || 'docs/METRICS.md#forecasting-tgn--research-track'}
+                />
+              </div>
+              <p className="text-2xl font-bold text-white">
+                {Math.round((forecast.predicted_risk_score ?? 0) * 100)}%
+                <span className="text-sm font-normal text-slate-500 ml-2">
+                  {forecast.model === 'tgn' ? 'TGN' : 'LSTM fallback'}
+                </span>
+              </p>
+              {forecast.detected_patterns?.length > 0 && (
+                <p className="text-xs text-slate-500 mt-2">{forecast.detected_patterns[0]}</p>
+              )}
             </div>
           )}
 

@@ -1,20 +1,29 @@
 import { useState } from 'react';
 import { useQuery } from 'react-query';
-import { Factory, Search, ShieldAlert } from 'lucide-react';
-import { fetchSuppliers, fetchSupplierExplanation } from '../api/client';
+import { Factory, Search, ShieldAlert, TrendingUp } from 'lucide-react';
+import { fetchSuppliers, fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
 import { riskColor, riskPillClass } from '../lib/risk';
 
+const FORECAST_HORIZONS = [7, 14, 30];
+
 export function SuppliersView() {
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState('');
+  const [forecastHorizon, setForecastHorizon] = useState(14);
 
   const suppliersQuery = useQuery(['suppliers'], () => fetchSuppliers({ limit: 100 }));
   const explanationQuery = useQuery(
     ['supplier-explanation', selectedId],
     () => fetchSupplierExplanation(selectedId),
+    { enabled: Boolean(selectedId) },
+  );
+  const forecastQuery = useQuery(
+    ['supplier-forecast', selectedId, forecastHorizon],
+    () => fetchSupplierForecast(selectedId, forecastHorizon),
     { enabled: Boolean(selectedId) },
   );
 
@@ -30,7 +39,9 @@ export function SuppliersView() {
       <DemoBanner />
       <div>
         <h1 className="page-title">Supplier Registry</h1>
-        <p className="mt-2 text-slate-400">Click any supplier for SHAP explainable risk factors</p>
+        <p className="mt-2 text-slate-400">
+          SCRI scores with SHAP explainability and TGN risk trajectory
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -76,8 +87,8 @@ export function SuppliersView() {
 
         <Panel
           className="lg:col-span-3"
-          title="SHAP explanation"
-          subtitle={selectedId ? 'Feature contributions to risk score' : 'Select a supplier'}
+          title="SCRI explanation"
+          subtitle={selectedId ? 'SHAP feature contributions' : 'Select a supplier'}
         >
           {!selectedId && (
             <div className="flex flex-col items-center py-16 text-slate-500">
@@ -95,6 +106,11 @@ export function SuppliersView() {
                 <span className={`risk-pill mb-2 ${riskPillClass(explanationQuery.data.risk_score)}`}>
                   {explanationQuery.data.risk_category}
                 </span>
+                <MetricTooltip
+                  label="SCRI"
+                  definition="Supply Chain Risk Index — normalized 0–100% supplier disruption exposure."
+                  reference="docs/METRICS.md"
+                />
               </div>
               <div className="space-y-3">
                 {(explanationQuery.data.explanations ?? []).map((item) => (
@@ -102,7 +118,7 @@ export function SuppliersView() {
                     <div className="flex justify-between gap-2 mb-2">
                       <p className="font-medium text-white">{item.description || item.feature}</p>
                       <span className="text-xs text-slate-500">
-                        {item.direction === 'increases' ? '↑ risk' : '↓ risk'}
+                        {item.direction === 'increases' ? '↑ SCRI' : '↓ SCRI'}
                       </span>
                     </div>
                     <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
@@ -114,6 +130,44 @@ export function SuppliersView() {
                   </div>
                 ))}
               </div>
+
+              <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <TrendingUp className="h-4 w-4 text-violet-400" />
+                  <p className="text-sm font-semibold text-violet-200">Risk trajectory</p>
+                  <MetricTooltip
+                    label="TGN forecast"
+                    definition="7/14/30-day projected SCRI path (research track)."
+                    reference="docs/METRICS.md#forecasting-tgn--research-track"
+                  />
+                </div>
+                <div className="flex gap-2 mb-3">
+                  {FORECAST_HORIZONS.map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setForecastHorizon(days)}
+                      className={`px-3 py-1 text-xs rounded-lg border ${
+                        forecastHorizon === days
+                          ? 'border-violet-500/50 bg-violet-500/20 text-violet-200'
+                          : 'border-slate-700 text-slate-400 hover:border-slate-600'
+                      }`}
+                    >
+                      {days}d
+                    </button>
+                  ))}
+                </div>
+                {forecastQuery.isLoading && <LoadingState label="Loading forecast…" />}
+                {forecastQuery.data && (
+                  <p className="text-3xl font-bold text-white">
+                    {Math.round((forecastQuery.data.predicted_risk_score ?? 0) * 100)}%
+                    <span className="text-sm font-normal text-slate-500 ml-2">
+                      projected · {forecastQuery.data.model === 'tgn' ? 'TGN' : 'LSTM'}
+                    </span>
+                  </p>
+                )}
+              </div>
+
               <p className="text-xs text-slate-600 flex items-center gap-1">
                 <ShieldAlert className="h-3 w-3" />
                 Model: {explanationQuery.data.model_version || 'xgboost-risk-scorer'}

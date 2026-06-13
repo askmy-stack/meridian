@@ -26,9 +26,18 @@ def _emit_high_severity_alerts(min_severity: float = 0.75) -> int:
     """Emit Slack-ready alerts for newly ingested high-severity events."""
     from src.alerting import get_alerting_service
     from src.alerting.slack import Alert, AlertTier
+    from src.causal.pipeline_alerts import (
+        assess_pipeline_causality,
+        causal_fields_for_alert,
+        format_alert_causal_summary,
+    )
     from src.graph import get_neo4j_client
 
     client = get_neo4j_client()
+    causal_assessment = assess_pipeline_causality(client)
+    causal_summary = format_alert_causal_summary(causal_assessment)
+    causal_meta = causal_fields_for_alert(causal_assessment)
+
     rows = client.execute_query(
         """
         MATCH (e:Event)
@@ -53,10 +62,12 @@ def _emit_high_severity_alerts(min_severity: float = 0.75) -> int:
             entity_id=row["id"],
             entity_type="event",
             risk_score=float(row["severity"]),
+            impact_summary=causal_summary,
             recommendations=[
                 "Review affected suppliers on the risk map",
                 "Run a disruption scenario for this region",
             ],
+            **causal_meta,
         )
         if service.send_alert(alert):
             sent += 1

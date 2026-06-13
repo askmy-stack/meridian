@@ -120,6 +120,13 @@ export async function fetchSupplierExplanation(supplierId) {
   return data;
 }
 
+export async function fetchSupplierForecast(supplierId, horizonDays = 7) {
+  const { data } = await apiClient.get(`/intelligence/forecast/${supplierId}`, {
+    params: { horizon_days: horizonDays },
+  });
+  return data;
+}
+
 export async function fetchSimulationScenarios() {
   const { data } = await apiClient.get('/simulation/scenarios');
   return data;

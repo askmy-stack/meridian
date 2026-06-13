@@ -96,4 +96,23 @@
             FOR ()-[r:ON_ROUTE]-() ON (r.sequence)
         ]]></query>
     </changeset>
+
+    <changeset id="009-create-event-nodes" author="meridian">
+        <query><![CDATA[
+            CREATE CONSTRAINT event_id IF NOT EXISTS
+            FOR (e:Event) REQUIRE e.id IS UNIQUE
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX event_severity IF NOT EXISTS
+            FOR (e:Event) ON (e.severity)
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX event_ingested_at IF NOT EXISTS
+            FOR (e:Event) ON (e.ingested_at)
+        ]]></query>
+        <query><![CDATA[
+            CREATE INDEX event_type IF NOT EXISTS
+            FOR (e:Event) ON (e.event_type)
+        ]]></query>
+    </changeset>
 </changelog>

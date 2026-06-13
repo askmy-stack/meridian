@@ -42,6 +42,10 @@ class AlertResponse(BaseModel):
     risk_score: Optional[float] = None
     impact_summary: Optional[str] = None
     recommendations: List[str] = Field(default_factory=list)
+    causal_claim_allowed: Optional[bool] = None
+    causal_method: Optional[str] = None
+    causal_effect_size: Optional[float] = None
+    causal_disclaimer: Optional[str] = None
     timestamp: str
 
 
@@ -62,6 +66,10 @@ def _alert_to_response(alert: Alert) -> AlertResponse:
         risk_score=alert.risk_score,
         impact_summary=alert.impact_summary,
         recommendations=list(alert.recommendations or []),
+        causal_claim_allowed=alert.causal_claim_allowed,
+        causal_method=alert.causal_method,
+        causal_effect_size=alert.causal_effect_size,
+        causal_disclaimer=alert.causal_disclaimer,
         timestamp=alert.timestamp,
     )
 

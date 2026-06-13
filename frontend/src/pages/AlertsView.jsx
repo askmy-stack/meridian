@@ -4,6 +4,7 @@ import { useQuery } from 'react-query';
 import { AlertTriangle, Bell, Globe, Info, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { fetchAlerts, fetchAlertStats, sendTestAlert } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
 
@@ -40,7 +41,12 @@ export function AlertsView() {
     entity: a.entity_id,
     entityType: a.entity_type,
     riskScore: a.risk_score,
+    impactSummary: a.impact_summary,
     recommendations: a.recommendations || [],
+    causalClaimAllowed: a.causal_claim_allowed,
+    causalMethod: a.causal_method,
+    causalDisclaimer: a.causal_disclaimer,
+    causalEffectSize: a.causal_effect_size,
   }));
 
   const getTierIcon = (tier) => {
@@ -113,7 +119,7 @@ export function AlertsView() {
         ))}
       </div>
 
-      <Panel title="Alert feed" subtitle="Newest first · auto-refreshes every 30s">
+      <Panel title="Alert feed" subtitle="Newest first · causal labels per D-005">
         {isError && (
           <p className="text-red-400 text-sm mb-4">Failed to load: {error?.message}</p>
         )}
@@ -136,8 +142,33 @@ export function AlertsView() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-semibold text-white">{alert.title}</h3>
                     <span className="risk-pill text-[10px] bg-black/20">{alert.tier}</span>
+                    {alert.causalMethod && (
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                          alert.causalClaimAllowed
+                            ? 'border-emerald-500/40 text-emerald-300'
+                            : 'border-amber-500/40 text-amber-300'
+                        }`}
+                      >
+                        {alert.causalClaimAllowed ? 'Causal verified' : 'Association only'}
+                      </span>
+                    )}
+                    {alert.causalDisclaimer && (
+                      <MetricTooltip
+                        label="Causal vs correlation"
+                        definition={
+                          alert.causalClaimAllowed
+                            ? 'DoWhy backdoor estimate passed refutation — language may assert causation.'
+                            : alert.causalDisclaimer
+                        }
+                        reference="docs/METRICS.md · DECISIONS D-005"
+                      />
+                    )}
                   </div>
                   <p className="text-sm text-slate-300 mt-1">{alert.message}</p>
+                  {alert.impactSummary && (
+                    <p className="text-xs text-slate-500 mt-2 italic">{alert.impactSummary}</p>
+                  )}
                   <p className="text-xs text-slate-500 mt-2">
                     {new Date(alert.timestamp).toLocaleString()}
                     {alert.entity && ` · ${alert.entity}`}
