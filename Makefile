@@ -73,10 +73,19 @@ seed-all: seed seed-suppliers seed-demo  ## Seed all demo data (ports + supplier
 ingest-gdelt:  ## Publish latest GDELT conflict events to Kafka
 	$(PY) -m src.producers gdelt
 
+ingest-acled:  ## Publish ACLED conflict events to Kafka (requires API key)
+	$(PY) -m src.producers acled
+
+ingest-ais:  ## Publish AISHub chokepoint vessel events to Kafka
+	$(PY) -m src.producers ais
+
 load-graph:  ## Consume Kafka events into Neo4j (set PIPELINE_MAX_MESSAGES)
 	$(PY) -m src.consumers graph-loader --max-messages $(or $(PIPELINE_MAX_MESSAGES),500)
 
-pipeline-refresh:  ## GDELT → Kafka → Neo4j → entity links → alerts
+load-vessels:  ## Consume AIS events into Neo4j Vessel nodes
+	$(PY) -m src.consumers vessel-loader --max-messages $(or $(PIPELINE_MAX_MESSAGES),500)
+
+pipeline-refresh:  ## GDELT + ACLED + AIS → Kafka → Neo4j → entity links → alerts
 	$(PY) scripts/pipeline_refresh.py
 
 demo:  ## Bootstrap infra, seed data, and run unit tests for portfolio demo

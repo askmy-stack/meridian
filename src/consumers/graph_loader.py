@@ -17,17 +17,11 @@ from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 
 from ..graph import get_neo4j_client
+from .pipeline_topics import GRAPH_LOADER_TOPICS
 
 logger = structlog.get_logger(__name__)
 
-DEFAULT_TOPICS = [
-    "meridian.gdelt.conflict",
-    "meridian.gdelt.protest",
-    "meridian.gdelt.fight",
-    "meridian.gdelt.assault",
-    "meridian.gdelt.mass_violence",
-    "meridian.acled.conflict",
-]
+DEFAULT_TOPICS = GRAPH_LOADER_TOPICS
 
 
 def estimate_severity(event: Dict[str, Any]) -> float:
