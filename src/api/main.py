@@ -6,17 +6,27 @@ Provides endpoints for supplier management, data ingestion, and system health.
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from typing import List, Optional
 
 import structlog
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile, status
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile, status
+
+# Load .env from project root so uvicorn/make dev pick up credentials without manual export.
+load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from ..graph import get_neo4j_client, get_supplier_repository
 from ..graph.models import Supplier
 from ..ingestion import get_csv_upload_service
+from .deps import require_write_access
 from .routes import alerts as alerts_routes
+from .routes import analytics as analytics_routes
+from .routes import geopolitical as geopolitical_routes
+from .routes import intelligence_extended as intelligence_extended_routes
+from .routes import simulation as simulation_routes
 
 logger = structlog.get_logger(__name__)
 
@@ -63,6 +73,10 @@ app.add_middleware(
 
 # Mount route modules
 app.include_router(alerts_routes.router)
+app.include_router(analytics_routes.router)
+app.include_router(geopolitical_routes.router)
+app.include_router(intelligence_extended_routes.router)
+app.include_router(simulation_routes.router)
 
 
 # Health check endpoints
@@ -96,7 +110,10 @@ async def neo4j_health():
     status_code=status.HTTP_201_CREATED,
     tags=["Suppliers"]
 )
-async def create_supplier(supplier_data: dict):
+async def create_supplier(
+    supplier_data: dict,
+    _user=Depends(require_write_access),
+):
     """Create a new supplier.
     
     Required fields:
@@ -188,7 +205,11 @@ async def list_suppliers(
     response_model=dict,
     tags=["Suppliers"]
 )
-async def update_supplier(supplier_id: str, updates: dict):
+async def update_supplier(
+    supplier_id: str,
+    updates: dict,
+    _user=Depends(require_write_access),
+):
     """Update a supplier by ID.
     
     Provide only fields to update. Cannot update id or created_at.
@@ -232,7 +253,7 @@ async def update_supplier(supplier_id: str, updates: dict):
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["Suppliers"]
 )
-async def delete_supplier(supplier_id: str):
+async def delete_supplier(supplier_id: str, _user=Depends(require_write_access)):
     """Delete a supplier by ID."""
     repo = get_supplier_repository()
     
@@ -262,7 +283,10 @@ async def delete_supplier(supplier_id: str):
     response_model=dict,
     tags=["Suppliers"]
 )
-async def upload_suppliers_csv(file: UploadFile = File(...)):
+async def upload_suppliers_csv(
+    file: UploadFile = File(...),
+    _user=Depends(require_write_access),
+):
     """Upload suppliers via CSV file.
     
     Expected CSV columns:
@@ -396,62 +420,99 @@ async def get_network_graph(
                 "min_risk": min_risk_score
             })
         else:
-            # Get global network (top suppliers by risk)
-            query = """
-            MATCH (s:Supplier)
-            OPTIONAL MATCH (s)-[r]->(n)
-            RETURN s, collect(DISTINCT n) as neighbors, collect(DISTINCT r) as relationships
-            ORDER BY s.risk_score DESC
-            LIMIT 50
-            """
-            result = client.execute_query(query)
+            result = client.execute_query(
+                """
+                MATCH (s:Supplier)
+                WITH s ORDER BY s.risk_score DESC LIMIT 50
+                OPTIONAL MATCH (s)-[r]->(n)
+                RETURN s, collect(DISTINCT n) AS neighbors, collect(DISTINCT r) AS relationships
+                """
+            )
         
+        def _node_id(node: object) -> Optional[str]:
+            if node is None:
+                return None
+            props = dict(node) if hasattr(node, "items") else node
+            return props.get("id") or props.get("locode")
+
+        def _append_node(node: object, node_ids: set, nodes: list) -> None:
+            nid = _node_id(node)
+            if not nid or nid in node_ids:
+                return
+            props = dict(node)
+            labels = list(node.labels) if hasattr(node, "labels") else []
+            node_type = labels[0].lower() if labels else "unknown"
+            nodes.append({
+                "id": nid,
+                "type": node_type,
+                "label": props.get("name", props.get("locode", "Unknown")),
+                "country": props.get("country_iso"),
+                "risk_score": props.get("risk_score", 0),
+                "latitude": props.get("latitude"),
+                "longitude": props.get("longitude"),
+                "critical": props.get("critical_flag", False),
+            })
+            node_ids.add(nid)
+
         # Transform to visualization format
         nodes = []
         edges = []
         node_ids = set()
+        edge_keys = set()
         
         for record in result:
-            # Add center/supplier node
             supplier = record.get("s") or record.get("center")
-            if supplier and supplier.get("id") not in node_ids:
-                nodes.append({
-                    "id": supplier["id"],
-                    "type": "supplier",
-                    "label": supplier.get("name", "Unknown"),
-                    "country": supplier.get("country_iso"),
-                    "risk_score": supplier.get("risk_score", 0),
-                    "latitude": supplier.get("latitude"),
-                    "longitude": supplier.get("longitude"),
-                    "critical": supplier.get("critical_flag", False)
-                })
-                node_ids.add(supplier["id"])
-            
-            # Add connected nodes
-            neighbors = record.get("neighbors", []) or [record.get("connected")]
-            for neighbor in neighbors:
-                if neighbor and neighbor.get("id") not in node_ids:
-                    node_type = list(neighbor.labels)[0].lower() if hasattr(neighbor, 'labels') else 'unknown'
-                    nodes.append({
-                        "id": neighbor["id"],
-                        "type": node_type,
-                        "label": neighbor.get("name", neighbor.get("locode", "Unknown")),
-                        "country": neighbor.get("country_iso"),
-                        "risk_score": neighbor.get("risk_score", 0),
-                        "latitude": neighbor.get("latitude"),
-                        "longitude": neighbor.get("longitude")
-                    })
-                    node_ids.add(neighbor["id"])
-            
-            # Add edges
+            if supplier:
+                _append_node(supplier, node_ids, nodes)
+
+            for neighbor in record.get("neighbors", []) or [record.get("connected")]:
+                if neighbor:
+                    _append_node(neighbor, node_ids, nodes)
+
             rels = record.get("relationships", []) or record.get("rels", [])
             for rel in rels:
-                if hasattr(rel, 'start_node') and hasattr(rel, 'end_node'):
-                    edges.append({
-                        "source": rel.start_node["id"],
-                        "target": rel.end_node["id"],
-                        "type": type(rel).__name__
-                    })
+                if rel is None or not hasattr(rel, "start_node"):
+                    continue
+                source = _node_id(rel.start_node)
+                target = _node_id(rel.end_node)
+                if not source or not target:
+                    continue
+                key = f"{source}->{target}"
+                if key in edge_keys:
+                    continue
+                edge_keys.add(key)
+                edges.append({
+                    "source": source,
+                    "target": target,
+                    "type": type(rel).__name__,
+                })
+
+        if not edges and node_ids:
+            edge_rows = client.execute_query(
+                """
+                MATCH (a)-[r]->(b)
+                WHERE coalesce(a.id, a.locode) IN $node_ids
+                   OR coalesce(b.id, b.locode) IN $node_ids
+                RETURN coalesce(a.id, a.locode) AS source,
+                       coalesce(b.id, b.locode) AS target,
+                       type(r) AS rel_type
+                LIMIT 200
+                """,
+                {"node_ids": list(node_ids)},
+            )
+            for row in edge_rows:
+                source, target = row.get("source"), row.get("target")
+                if not source or not target:
+                    continue
+                key = f"{source}->{target}"
+                if key in edge_keys:
+                    continue
+                edge_keys.add(key)
+                edges.append({
+                    "source": source,
+                    "target": target,
+                    "type": row.get("rel_type", "RELATED"),
+                })
         
         logger.info(
             "network_graph_generated",
@@ -496,13 +557,26 @@ async def get_risk_map_data(
         from ..graph import get_neo4j_client
         
         client = get_neo4j_client()
-        
+
+        label_map = {
+            "supplier": "Supplier",
+            "port": "Port",
+            "chokepoint": "Chokepoint",
+        }
+        neo4j_label = label_map.get(entity_type, "Supplier")
+        risk_expr = {
+            "Supplier": "coalesce(n.risk_score, 0)",
+            "Port": "coalesce(n.congestion_score, n.risk_score, 0)",
+            "Chokepoint": "coalesce(n.current_risk_score, n.risk_score, 0)",
+        }[neo4j_label]
+
         query = f"""
-        MATCH (n:{entity_type})
-        WHERE n.risk_score >= $min_risk AND n.latitude IS NOT NULL AND n.longitude IS NOT NULL
+        MATCH (n:{neo4j_label})
+        WHERE {risk_expr} >= $min_risk
+          AND n.latitude IS NOT NULL AND n.longitude IS NOT NULL
         RETURN n.id as id, n.name as name, n.latitude as lat, n.longitude as lon,
-               n.risk_score as risk, n.country_iso as country
-        ORDER BY n.risk_score DESC
+               {risk_expr} as risk, n.country_iso as country
+        ORDER BY risk DESC
         LIMIT 500
         """
         
@@ -520,8 +594,9 @@ async def get_risk_map_data(
                     "id": record["id"],
                     "name": record["name"],
                     "risk_score": record["risk"],
-                    "risk_category": _risk_to_category(record["risk"]),
-                    "country": record["country"]
+                    "risk_category": _risk_to_category(record["risk"] or 0),
+                    "country": record["country"],
+                    "entity_type": entity_type,
                 }
             })
         
@@ -570,35 +645,94 @@ async def get_supplier_risk_explanation(supplier_id: str):
     Returns feature contributions and top risk factors.
     """
     try:
-        from ..intelligence import get_supplier_risk
-        
-        result = get_supplier_risk(supplier_id)
-        
-        if "error" in result:
+        repo = get_supplier_repository()
+        supplier = repo.get_by_id(supplier_id)
+        if not supplier:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=result["error"]
+                detail="Supplier not found",
             )
-        
-        # Format SHAP explanation
-        current_risk = result.get("current_risk", {})
+
+        # Prefer full ML stack when XGBoost/SHAP are installed; otherwise demo factors.
+        try:
+            from ..intelligence import get_supplier_risk
+
+            result = get_supplier_risk(supplier_id)
+            if "error" not in result:
+                current_risk = result.get("current_risk", {})
+                explanations = [
+                    {
+                        "feature": factor["feature"],
+                        "description": factor["description"],
+                        "contribution": factor["contribution"],
+                        "direction": factor["direction"],
+                    }
+                    for factor in current_risk.get("top_factors", [])
+                ]
+                return {
+                    "supplier_id": supplier_id,
+                    "risk_score": current_risk.get("risk_score"),
+                    "risk_category": current_risk.get("risk_category"),
+                    "explanations": explanations,
+                    "model_version": result.get("model_versions", {}).get("risk_scorer"),
+                    "generated_at": datetime.now().isoformat(),
+                }
+        except ImportError:
+            logger.info("risk_explanation_demo_mode", supplier_id=supplier_id)
+
+        client = get_neo4j_client()
+        event_rows = client.execute_query(
+            """
+            MATCH (e:Event)-[:AFFECTS]->(s:Supplier {id: $supplier_id})
+            WHERE e.resolved_at > datetime() - duration('P30D')
+            RETURN count(e) AS events
+            """,
+            {"supplier_id": supplier_id},
+        )
+        recent_events = event_rows[0]["events"] if event_rows else 0
+
         explanations = []
-        
-        for factor in current_risk.get("top_factors", []):
+        if supplier.critical_flag:
             explanations.append({
-                "feature": factor["feature"],
-                "description": factor["description"],
-                "contribution": factor["contribution"],
-                "direction": factor["direction"]
+                "feature": "critical_supplier",
+                "description": "Flagged as business-critical in supply graph",
+                "contribution": 0.22,
+                "direction": "increases",
             })
-        
+        if supplier.single_source_flag:
+            explanations.append({
+                "feature": "single_source",
+                "description": "No qualified alternate supplier in network",
+                "contribution": 0.20,
+                "direction": "increases",
+            })
+        if recent_events > 0:
+            explanations.append({
+                "feature": "active_disruptions",
+                "description": f"{recent_events} geopolitical event(s) in last 30 days",
+                "contribution": min(0.35, 0.12 * recent_events),
+                "direction": "increases",
+            })
+        if supplier.country_iso in {"TW", "IL", "UA", "YE"}:
+            explanations.append({
+                "feature": "geopolitical_exposure",
+                "description": f"Elevated regional tension ({supplier.country_iso})",
+                "contribution": 0.18,
+                "direction": "increases",
+            })
+
         return {
             "supplier_id": supplier_id,
-            "risk_score": current_risk.get("risk_score"),
-            "risk_category": current_risk.get("risk_category"),
-            "explanations": explanations,
-            "model_version": result.get("model_versions", {}).get("risk_scorer"),
-            "generated_at": datetime.now().isoformat()
+            "risk_score": supplier.risk_score,
+            "risk_category": _risk_to_category(supplier.risk_score),
+            "explanations": explanations or [{
+                "feature": "baseline",
+                "description": "Stable supplier profile — no major active signals",
+                "contribution": 0.05,
+                "direction": "neutral",
+            }],
+            "model_version": "demo-heuristic-v1",
+            "generated_at": datetime.now().isoformat(),
         }
         
     except HTTPException:
@@ -622,9 +756,6 @@ async def generate_weekly_digest():
     Summarizes week's events, top risks, and recommendations.
     """
     try:
-        from ..graph import get_neo4j_client
-        from ..intelligence import get_intelligence_service
-        
         client = get_neo4j_client()
         
         # Get week's events

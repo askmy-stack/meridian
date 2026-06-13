@@ -45,6 +45,7 @@ addopts = "-ra --strict-markers"
 markers = [
     "integration: requires docker compose stack",
     "slow: long-running tests (> 5s)",
+    "neo4j_required: requires seeded Neo4j instance",
 ]
 
 [tool.mypy]

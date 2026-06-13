@@ -2,33 +2,121 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom styles for Meridian */
-body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+@layer base {
+  :root {
+    --bg-deep: #070b14;
+    --bg-panel: #0f1629;
+    --bg-elevated: #151f38;
+    --border-subtle: rgba(148, 163, 184, 0.12);
+    --accent: #3b82f6;
+    --accent-glow: rgba(59, 130, 246, 0.35);
+    --text-primary: #f1f5f9;
+    --text-muted: #94a3b8;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
 }
 
-/* Mapbox GL custom styles */
+@layer components {
+  .glass-panel {
+    @apply rounded-2xl border backdrop-blur-xl;
+    background: linear-gradient(145deg, rgba(21, 31, 56, 0.92), rgba(15, 22, 41, 0.88));
+    border-color: var(--border-subtle);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .stat-card {
+    @apply glass-panel p-5 transition-all duration-300 hover:-translate-y-0.5;
+  }
+
+  .stat-card:hover {
+    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.25);
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200;
+    color: var(--text-muted);
+  }
+
+  .nav-link:hover {
+    color: var(--text-primary);
+    background: rgba(59, 130, 246, 0.08);
+  }
+
+  .nav-link-active {
+    color: white;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(99, 102, 241, 0.15));
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.45);
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors;
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .btn-ghost:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .risk-pill {
+    @apply px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide;
+  }
+
+  .page-title {
+    @apply text-3xl font-bold tracking-tight;
+    background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+}
+
 .mapboxgl-map {
   font-family: inherit;
+  border-radius: 1rem;
 }
 
-/* Risk score colors */
-.risk-none { color: #10b981; }
-.risk-low { color: #3b82f6; }
-.risk-medium { color: #f59e0b; }
-.risk-high { color: #f97316; }
-.risk-critical { color: #ef4444; }
-
-/* Animation for loading states */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
 }

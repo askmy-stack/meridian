@@ -10,6 +10,15 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, Field, field_validator
 
 
+def _coerce_neo4j_datetime(value: object) -> object:
+    """Convert Neo4j temporal types to Python datetime for Pydantic."""
+    if value is None:
+        return value
+    if hasattr(value, "to_native"):
+        return value.to_native()
+    return value
+
+
 class GraphEntity(BaseModel):
     """Base model for all graph entities."""
     
@@ -18,6 +27,11 @@ class GraphEntity(BaseModel):
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     model_config = {"extra": "allow"}
+
+    @field_validator("created_at", "updated_at", mode="before")
+    @classmethod
+    def parse_graph_datetimes(cls, value: object) -> object:
+        return _coerce_neo4j_datetime(value)
 
 
 class Supplier(GraphEntity):
@@ -35,6 +49,11 @@ class Supplier(GraphEntity):
     employee_count: Optional[int] = None
     risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
     last_scored_at: Optional[datetime] = None
+
+    @field_validator("last_scored_at", mode="before")
+    @classmethod
+    def parse_last_scored_at(cls, value: object) -> object:
+        return _coerce_neo4j_datetime(value)
     
     # Contact/address fields
     city: Optional[str] = None

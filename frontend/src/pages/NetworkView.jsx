@@ -1,179 +1,110 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useQuery } from 'react-query';
 import { Network, RefreshCw } from 'lucide-react';
 import { fetchNetwork } from '../api/client';
 import { NetworkGraph } from '../components/NetworkGraph';
+import { DemoBanner } from '../components/DemoBanner';
+import { LoadingState } from '../components/ui/LoadingState';
+import { Panel } from '../components/ui/Panel';
+import { riskPillClass } from '../lib/risk';
 
 export function NetworkView() {
-  const [networkData, setNetworkData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  const { data: networkData, isLoading, isError, refetch, isFetching } = useQuery(
+    ['network', 2],
+    () => fetchNetwork({ depth: 2 }),
+    { staleTime: 60_000 },
+  );
 
-  const refresh = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchNetwork({ depth: 2 });
-      setNetworkData(data);
-    } catch (error) {
-      console.error('Failed to fetch network:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (isLoading) return <LoadingState label="Building supply graph…" />;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <DemoBanner />
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Supply Chain Network</h1>
-          <p className="mt-2 text-gray-600">Visualize supplier relationships and dependencies</p>
+          <h1 className="page-title">Supply Chain Graph</h1>
+          <p className="mt-2 text-slate-400">Interactive knowledge graph — suppliers, ports, chokepoints</p>
         </div>
-        <button
-          onClick={refresh}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <RefreshCw className="h-4 w-4" />
+        <button type="button" onClick={() => refetch()} disabled={isFetching} className="btn-ghost">
+          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
-      {/* Stats */}
+      {isError && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300 text-sm">
+          Could not load graph — ensure Neo4j is running and seeded.
+        </div>
+      )}
+
       {networkData?.metadata && (
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-2">
-              <Network className="h-5 w-5 text-blue-600" />
-              <span className="font-medium">Nodes</span>
+          {[
+            { label: 'Nodes', val: networkData.metadata.total_nodes, icon: Network },
+            { label: 'Edges', val: networkData.metadata.total_edges, icon: Network },
+            { label: 'Depth', val: networkData.metadata.depth, icon: Network },
+          ].map(({ label, val }) => (
+            <div key={label} className="stat-card text-center">
+              <p className="text-2xl font-bold text-white">{val}</p>
+              <p className="text-xs text-slate-500">{label}</p>
             </div>
-            <p className="mt-1 text-2xl font-semibold">{networkData.metadata.total_nodes}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-2">
-              <Network className="h-5 w-5 text-green-600" />
-              <span className="font-medium">Relationships</span>
-            </div>
-            <p className="mt-1 text-2xl font-semibold">{networkData.metadata.total_edges}</p>
-          </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center gap-2">
-              <Network className="h-5 w-5 text-purple-600" />
-              <span className="font-medium">Depth</span>
-            </div>
-            <p className="mt-1 text-2xl font-semibold">{networkData.metadata.depth}</p>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Visual graph */}
       {networkData?.nodes && (
-        <NetworkGraph
-          nodes={networkData.nodes}
-          edges={(networkData.edges || []).map((e) => ({
-            source: e.source ?? e.from,
-            target: e.target ?? e.to,
-            type: e.type,
-          }))}
-        />
+        <div className="glass-panel p-4 overflow-hidden">
+          <NetworkGraph
+            nodes={networkData.nodes}
+            edges={(networkData.edges || []).map((e) => ({
+              source: e.source ?? e.from,
+              target: e.target ?? e.to,
+              type: e.type,
+            }))}
+          />
+        </div>
       )}
 
-      {/* Searchable node list */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Network Nodes</h2>
-          
-          {networkData?.nodes && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {networkData.nodes.slice(0, 50).map((node) => (
-                <div
-                  key={node.id}
-                  onClick={() => setSelectedNode(node)}
-                  className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                    node.critical
-                      ? 'bg-red-50 border-red-200 hover:bg-red-100'
-                      : node.risk_score > 0.6
-                      ? 'bg-orange-50 border-orange-200 hover:bg-orange-100'
-                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded bg-gray-200 text-gray-700 capitalize">
-                        {node.type}
-                      </span>
-                      <h3 className="mt-2 font-medium text-gray-900">{node.label}</h3>
-                      {node.country && (
-                        <p className="text-sm text-gray-500">{node.country}</p>
-                      )}
-                    </div>
-                    {node.risk_score > 0 && (
-                      <span
-                        className={`px-2 py-1 text-xs font-semibold rounded ${
-                          node.risk_score > 0.8
-                            ? 'bg-red-100 text-red-800'
-                            : node.risk_score > 0.6
-                            ? 'bg-orange-100 text-orange-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}
-                      >
-                        {(node.risk_score * 100).toFixed(0)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+      <Panel title="Network entities" subtitle="Click a node in the graph or select from list">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          {(networkData?.nodes ?? []).slice(0, 30).map((node) => (
+            <button
+              key={node.id}
+              type="button"
+              onClick={() => setSelectedNode(node)}
+              className={`text-left p-4 rounded-xl border transition-all ${
+                selectedNode?.id === node.id
+                  ? 'border-blue-500/50 bg-blue-500/10'
+                  : 'border-slate-700/50 hover:border-slate-600'
+              }`}
+            >
+              <span className="text-[10px] uppercase tracking-wider text-slate-500">{node.type}</span>
+              <p className="font-medium text-white mt-1">{node.label}</p>
+              {node.risk_score > 0 && (
+                <span className={`risk-pill mt-2 inline-block ${riskPillClass(node.risk_score)}`}>
+                  {Math.round(node.risk_score * 100)}%
+                </span>
+              )}
+            </button>
+          ))}
         </div>
-      </div>
+      </Panel>
 
-      {/* Selected Node Details */}
       {selectedNode && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Node Details</h2>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <span className="text-sm text-gray-500">ID</span>
-              <p className="font-medium text-gray-900">{selectedNode.id}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-500">Type</span>
-              <p className="font-medium text-gray-900 capitalize">{selectedNode.type}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-500">Name</span>
-              <p className="font-medium text-gray-900">{selectedNode.label}</p>
-            </div>
-            <div>
-              <span className="text-sm text-gray-500">Risk Score</span>
-              <p className="font-medium text-gray-900">
-                {selectedNode.risk_score ? `${(selectedNode.risk_score * 100).toFixed(0)}%` : 'N/A'}
-              </p>
-            </div>
+        <Panel title={selectedNode.label} subtitle={`${selectedNode.type} · ${selectedNode.id}`}>
+          <dl className="grid grid-cols-2 gap-4 text-sm">
+            <div><dt className="text-slate-500">Country</dt><dd className="text-white">{selectedNode.country || '—'}</dd></div>
+            <div><dt className="text-slate-500">Risk</dt><dd className="text-white">{selectedNode.risk_score ? `${Math.round(selectedNode.risk_score * 100)}%` : 'N/A'}</dd></div>
             {selectedNode.latitude && (
               <>
-                <div>
-                  <span className="text-sm text-gray-500">Latitude</span>
-                  <p className="font-medium text-gray-900">{selectedNode.latitude.toFixed(4)}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Longitude</span>
-                  <p className="font-medium text-gray-900">{selectedNode.longitude.toFixed(4)}</p>
-                </div>
+                <div><dt className="text-slate-500">Lat</dt><dd className="text-white">{selectedNode.latitude.toFixed(4)}</dd></div>
+                <div><dt className="text-slate-500">Lon</dt><dd className="text-white">{selectedNode.longitude.toFixed(4)}</dd></div>
               </>
             )}
-          </div>
-        </div>
+          </dl>
+        </Panel>
       )}
     </div>
   );

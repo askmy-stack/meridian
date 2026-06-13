@@ -1,31 +1,31 @@
 name,country_iso,city,latitude,longitude,port_code,annual_volume_usd,risk_score,critical
-Acme Electronics Ltd,CN,Shenzhen,22.5431,114.0579,CNSHK,150000000,0.72,True
-Shanghai Manufacturing Co,CN,Shanghai,31.2304,121.4737,CNSHA,250000000,0.68,True
+Acme Electronics Ltd,CN,Shenzhen,22.5431,114.0579,CNSZX,150000000,0.72,True
+Shanghai Manufacturing Co,CN,Shanghai,31.2304,121.4737,CNSHG,250000000,0.68,True
 Taiwan Semiconductor Corp,TW,Hsinchu,24.8138,120.9675,TWKHH,500000000,0.85,True
-Seoul Precision Parts,KR,Seoul,37.5665,126.9780,KRSEL,180000000,0.45,False
+Seoul Precision Parts,KR,Seoul,37.5665,126.9780,KRPUS,180000000,0.45,False
 Tokyo Robotics Inc,JP,Tokyo,35.6762,139.6503,JPTYO,120000000,0.32,False
-Osaka Electronics Group,JP,Osaka,34.6937,135.5023,JPOSA,95000000,0.38,False
-Mumbai Chemicals Ltd,IN,Mumbai,19.0760,72.8777,INBOM,75000000,0.58,False
-Bangalore Tech Solutions,IN,Bangalore,12.9716,77.5946,INBLR,110000000,0.52,False
-Dubai Logistics Hub,AE,Dubai,25.2048,55.2708,AEDXB,200000000,0.41,False
-Istanbul Manufacturing,TR,Istanbul,41.0082,28.9784,TRIST,65000000,0.61,False
+Osaka Electronics Group,JP,Osaka,34.6937,135.5023,JPTYO,95000000,0.38,False
+Mumbai Chemicals Ltd,IN,Mumbai,19.0760,72.8777,INNSA,75000000,0.58,False
+Bangalore Tech Solutions,IN,Bangalore,12.9716,77.5946,INNSA,110000000,0.52,False
+Dubai Logistics Hub,AE,Dubai,25.2048,55.2708,AEJEA,200000000,0.41,False
+Istanbul Manufacturing,TR,Istanbul,41.0082,28.9784,GRPIR,65000000,0.61,False
 Rotterdam Components,NL,Rotterdam,51.9244,4.4777,NLRTM,180000000,0.28,False
 Hamburg Industrial GmbH,DE,Hamburg,53.5511,9.9937,DEHAM,220000000,0.25,False
-Warsaw Electronics,PL,Warsaw,52.2297,21.0122,PLWAW,45000000,0.35,False
+Warsaw Electronics,PL,Warsaw,52.2297,21.0122,DEHAM,45000000,0.35,False
 Singapore Precision Pte,SG,Singapore,1.3521,103.8198,SGSIN,320000000,0.39,False
-Ho Chi Minh Assembly,VN,Ho Chi Minh,10.8231,106.6297,VNSGN,140000000,0.55,False
-Bangkok Components,TH,Bangkok,13.7563,100.5018,THBKK,85000000,0.48,False
-Manila Electronics,PH,Manila,14.5995,120.9842,PHMNL,60000000,0.63,False
-Jakarta Industrial,ID,Jakarta,-6.2088,106.8456,IDJKT,95000000,0.67,False
+Ho Chi Minh Assembly,VN,Ho Chi Minh,10.8231,106.6297,SGSIN,140000000,0.55,False
+Bangkok Components,TH,Bangkok,13.7563,100.5018,SGSIN,85000000,0.48,False
+Manila Electronics,PH,Manila,14.5995,120.9842,SGSIN,60000000,0.63,False
+Jakarta Industrial,ID,Jakarta,-6.2088,106.8456,SGSIN,95000000,0.67,False
 Melbourne Logistics,AU,Melbourne,-37.8136,144.9631,AUMEL,55000000,0.29,False
-Sao Paulo Manufacturing,BR,Sao Paulo,-23.5505,-46.6333,BRSAO,130000000,0.71,False
-Mexico City Assembly,MX,Mexico City,19.4326,-99.1332,MXMEX,78000000,0.44,False
-Toronto Components,CA,Toronto,43.6532,-79.3832,CATOR,42000000,0.26,False
-Detroit Motors Supply,US,Detroit,42.3314,-83.0458,USDET,310000000,0.31,False
-Houston Chemicals,US,Houston,29.7604,-95.3698,USHOU,175000000,0.27,False
+Sao Paulo Manufacturing,BR,Sao Paulo,-23.5505,-46.6333,BRSSZ,130000000,0.71,False
+Mexico City Assembly,MX,Mexico City,19.4326,-99.1332,USLAX,78000000,0.44,False
+Toronto Components,CA,Toronto,43.6532,-79.3832,CAVAN,42000000,0.26,False
+Detroit Motors Supply,US,Detroit,42.3314,-83.0458,USNYC,310000000,0.31,False
+Houston Chemicals,US,Houston,29.7604,-95.3698,USLAX,175000000,0.27,False
 Los Angeles Logistics,US,Los Angeles,34.0522,-118.2437,USLAX,140000000,0.29,False
-Tel Aviv Electronics,IL,Tel Aviv,32.0853,34.7818,ILTLV,68000000,0.78,True
-Istanbul Precision Parts,TR,Istanbul,41.0082,28.9784,TRIST,52000000,0.61,False
-Cairo Manufacturing,EG,Cairo,30.0444,31.2357,EGCAI,48000000,0.69,False
-Johannesburg Mining Tech,ZA,Johannesburg,-26.2041,28.0473,ZAJNB,87000000,0.64,False
-Nairobi Logistics,KE,Nairobi,-1.2921,36.8219,KENBO,35000000,0.58,False
+Tel Aviv Electronics,IL,Tel Aviv,32.0853,34.7818,AEJEA,68000000,0.78,True
+Istanbul Precision Parts,TR,Istanbul,41.0082,28.9784,GRPIR,52000000,0.61,False
+Cairo Manufacturing,EG,Cairo,30.0444,31.2357,SAJED,48000000,0.69,False
+Johannesburg Mining Tech,ZA,Johannesburg,-26.2041,28.0473,ZADUR,87000000,0.64,False
+Nairobi Logistics,KE,Nairobi,-1.2921,36.8219,ZADUR,35000000,0.58,False
