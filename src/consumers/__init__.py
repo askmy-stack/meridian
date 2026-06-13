@@ -1,8 +1,15 @@
-"""Kafka consumers module for Meridian.
+"""Kafka consumers module for Meridian."""
 
-Consumers that process events and update the knowledge graph.
-"""
+__all__ = ["EntityResolutionConsumer", "GraphLoaderConsumer"]
 
-from .entity_resolution import EntityResolutionConsumer
 
-__all__ = ["EntityResolutionConsumer"]
+def __getattr__(name: str):  # PEP 562 lazy exports
+    if name == "EntityResolutionConsumer":
+        from .entity_resolution import EntityResolutionConsumer
+
+        return EntityResolutionConsumer
+    if name == "GraphLoaderConsumer":
+        from .graph_loader import GraphLoaderConsumer
+
+        return GraphLoaderConsumer
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

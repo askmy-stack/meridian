@@ -5,10 +5,10 @@
 
 ---
 
-## Current Version: v0.1 — Design Phase
-**Status:** Design only — no code written
-**Date:** 2026-05-09
-**Author:** Abhinaysai Kamineni + Claude (session 0)
+## Current Version: v0.2 — Portfolio demo + live ingestion
+**Status:** Shipped — React dashboard, FastAPI, Neo4j graph, GDELT pipeline, CI
+**Date:** 2026-06-13
+**Author:** Abhinaysai Kamineni
 
 ---
 
@@ -467,16 +467,24 @@ CloudWatch: logs (in addition to Prometheus/Grafana)
 
 ## Build Phases
 
-| Phase | Scope | Status | ETA |
+| Phase | Scope | Status | Notes |
 |---|---|---|---|
 | Phase 0 | Architecture + documentation | ✅ Complete | 2026-05-09 |
-| Phase 1 | Kafka + ingestion producers (GDELT, AIS, ACLED) | 🔄 Next | Week 1-2 |
-| Phase 2 | Neo4j schema + entity resolution + graph loading | ⏳ Planned | Week 3 |
-| Phase 3 | XGBoost risk scorer + SHAP + MLflow tracking | ⏳ Planned | Week 4 |
-| Phase 4 | Disruption simulator (BFS + Monte Carlo) | ⏳ Planned | Week 5 |
-| Phase 5 | React dashboard + Mapbox + Slack alerts + FastAPI | ⏳ Planned | Week 6 |
-| Phase 6 | TGN + HMM + DoWhy causal inference | ⏳ Planned | Week 8-10 |
-| Phase 7 | Open-source launch (README polish, demo video, HN) | ⏳ Planned | Week 7 |
+| Phase 1 | Kafka + ingestion producers (GDELT, AIS, ACLED) | ✅ Complete | Producers + graph loader consumer |
+| Phase 2 | Neo4j graph + geopolitical map API | ✅ Complete | Map, timeline, conflict zones |
+| Phase 3 | Risk scoring + SHAP | ⚠️ Partial | Heuristic/demo scores; MLflow training next |
+| Phase 4 | Simulator + product UX | ✅ Complete | Compare, sectors, copilot, EntityDrawer |
+| Phase 5 | React dashboard + CI | ✅ Complete | Vitest, Playwright scaffold, Neo4j in CI |
+| Phase 6 | Advanced ML (TGN, HMM, DoWhy) | 🔬 Research | Stubs only |
+| Phase 7 | Public deploy + OSS launch | 🔄 Next | Live URL, demo GIF, HN |
+
+### Live pipeline (Phase 1 extension)
+
+```
+GDELTProducer  →  meridian.gdelt.*  →  GraphLoaderConsumer  →  :Event nodes
+                                   →  EntityResolutionConsumer  →  (:Event)-[:AFFECTS]->(:Supplier)
+scripts/pipeline_refresh.py  →  optional Slack alerts for high-severity ingested events
+```
 
 ---
 
@@ -485,6 +493,7 @@ CloudWatch: logs (in addition to Prometheus/Grafana)
 | Version | Date | Changes |
 |---|---|---|
 | v0.1 | 2026-05-09 | Initial architecture design — Session 0 |
+| v0.2 | 2026-06-13 | Portfolio demo UI, GDELT graph loader pipeline, CI with Neo4j |
 
 ---
 

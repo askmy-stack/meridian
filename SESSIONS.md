@@ -210,4 +210,43 @@
 4. Build Cypher queries for relationship mapping
 
 [OWNER NOTES]
-- 
+-
+
+---
+
+## Session 4 — 2026-06-13
+**Duration:** ~3h (multi-session continuation)
+**Phase:** Portfolio demo + ingestion pipeline
+
+### Built
+- **Risk intelligence UI (Phases 2–6):** interactive map (MapLibre), simulator with Monte Carlo + compare, copilot, sectors dashboard, timeline slider, EntityDrawer, alert→map links
+- **API routes:** geopolitical map layers, simulation, analytics export, intelligence copilot/backtest, weather/sanctions layers
+- **CI:** Neo4j in GitHub Actions, Vitest + frontend build, 53+ unit tests
+- **Merged PR #1** to `main`
+- **Graph loader consumer:** `src/consumers/graph_loader.py` — Kafka → Neo4j `:Event` nodes
+- **Pipeline job:** `scripts/pipeline_refresh.py` — GDELT publish + load + entity resolution + alerts
+- **Docs refresh:** README restructure, `docs/DEMO.md`, QUICKSTART, ARCHITECTURE v0.2
+
+### State at end
+- Local demo: `make seed-all` + API `:8002` + frontend `:5173`
+- Live ingestion path functional when Kafka + Neo4j are up
+- README GIF placeholder at `docs/assets/meridian-demo.gif` (not yet recorded)
+- Public deploy not yet configured
+
+### Decisions made
+- MapLibre + Carto tiles as default basemap (no Mapbox token required for demo)
+- Graph loader as separate consumer group from entity resolution (same topics, parallel processing)
+- `make pipeline-refresh` as single entry point for scheduled ingestion
+
+### Blockers
+- None for local demo
+- Public URL still needed for portfolio/LinkedIn
+
+### Next session starts with
+1. Deploy frontend (Vercel) + API/Neo4j (Railway)
+2. Record demo GIF per `docs/DEMO.md`
+3. Wire ACLED producer into `pipeline_refresh.py`
+4. MLflow-tracked XGBoost training run
+
+[OWNER NOTES]
+-

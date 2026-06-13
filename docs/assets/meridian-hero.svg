@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420" role="img" aria-label="Meridian supply chain risk intelligence">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="50%" stop-color="#111827"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="920" height="420" fill="url(#bg)" rx="16"/>
+  <circle cx="780" cy="80" r="120" fill="#3b82f6" opacity="0.08"/>
+  <circle cx="140" cy="320" r="90" fill="#6366f1" opacity="0.1"/>
+  <text x="48" y="88" fill="#93c5fd" font-family="system-ui, sans-serif" font-size="14" letter-spacing="4">MERIDIAN</text>
+  <text x="48" y="138" fill="#f8fafc" font-family="system-ui, sans-serif" font-size="34" font-weight="700">Supply Chain Risk Intelligence</text>
+  <text x="48" y="178" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="18">Signals ’ Graph ’ Scores ’ Simulation ’ Action</text>
+  <rect x="48" y="220" width="824" height="2" fill="#334155"/>
+  <g font-family="system-ui, sans-serif" font-size="13" fill="#cbd5e1">
+    <text x="48" y="260">< Interactive risk map</text>
+    <text x="280" y="260">¡ Disruption simulator</text>
+    <text x="520" y="260">> Risk copilot</text>
+    <text x="720" y="260">=Ê Sector dashboard</text>
+    <text x="48" y="300">= GDELT ’ Kafka ’ Neo4j pipeline</text>
+    <text x="380" y="300">=È Monte Carlo + BFS propagation</text>
+    <text x="720" y="300">= Slack-ready alerts</text>
+  </g>
+  <rect x="48" y="340" width="200" height="36" rx="8" fill="url(#accent)" opacity="0.9"/>
+  <text x="68" y="363" fill="#ffffff" font-family="system-ui, sans-serif" font-size="14" font-weight="600">make demo ’ localhost:5173</text>
+</svg>
