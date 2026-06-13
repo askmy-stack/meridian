@@ -12,8 +12,10 @@ For MVP, this is a stub that:
 - Documents the TGN architecture for future implementation
 """
 
+import csv
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 from datetime import datetime, timedelta
 
@@ -270,7 +272,7 @@ class TGNForecaster:
         )
     
     def _get_historical_from_graph(self, entity_id: str) -> List[float]:
-        """Query historical risk scores from Neo4j."""
+        """Query historical risk scores from Neo4j, with CSV snapshot fallback."""
         try:
             from ..graph import get_neo4j_client
             client = get_neo4j_client()
@@ -283,6 +285,11 @@ class TGNForecaster:
             """
             
             result = client.execute_query(query, {"entity_id": entity_id})
+            
+            if not result:
+                csv_scores = self._historical_from_csv_snapshot(entity_id)
+                if csv_scores:
+                    return csv_scores
             
             # Convert to daily risk scores
             scores = [0.3] * 14  # Default baseline
@@ -298,7 +305,67 @@ class TGNForecaster:
             
         except Exception as e:
             self.logger.error("historical_query_failed", error=str(e))
+            csv_scores = self._historical_from_csv_snapshot(entity_id)
+            if csv_scores:
+                return csv_scores
             return []
+
+    def _snapshot_dir(self) -> Path:
+        """Directory for supplier graph snapshots (see export_graph_snapshots.py)."""
+        return Path(os.getenv("SNAPSHOT_DIR", "data/snapshots"))
+
+    def _latest_supplier_snapshot_path(self) -> Optional[Path]:
+        """Return path to the newest supplier_snapshot_*.csv file."""
+        snapshot_dir = self._snapshot_dir()
+        if not snapshot_dir.is_dir():
+            return None
+        candidates = sorted(snapshot_dir.glob("supplier_snapshot_*.csv"), reverse=True)
+        return candidates[0] if candidates else None
+
+    def _load_supplier_snapshot_row(self, entity_id: str) -> Optional[Dict[str, str]]:
+        """Load a supplier row from the latest CSV snapshot export."""
+        snapshot_path = self._latest_supplier_snapshot_path()
+        if snapshot_path is None:
+            return None
+
+        try:
+            with snapshot_path.open(newline="", encoding="utf-8") as handle:
+                reader = csv.DictReader(handle)
+                for row in reader:
+                    if row.get("supplier_id") == entity_id:
+                        return row
+        except OSError as exc:
+            self.logger.error("csv_snapshot_read_failed", error=str(exc), path=str(snapshot_path))
+
+        return None
+
+    def _historical_from_csv_snapshot(self, entity_id: str) -> List[float]:
+        """Build synthetic history from latest CSV snapshot when Neo4j is unavailable."""
+        row = self._load_supplier_snapshot_row(entity_id)
+        if not row:
+            return []
+
+        try:
+            risk_score = float(row.get("risk_score") or 0.5)
+            events = int(float(row.get("events") or 0))
+            max_severity_raw = row.get("max_severity")
+            max_severity = float(max_severity_raw) if max_severity_raw not in (None, "") else risk_score
+        except (TypeError, ValueError):
+            self.logger.warning("csv_snapshot_invalid_row", entity_id=entity_id)
+            return []
+
+        scores = [max(0.1, min(1.0, risk_score * 0.85))] * 14
+        bump = min(0.95, risk_score + events * 0.02)
+        for i in range(min(3, len(scores))):
+            scores[-(i + 1)] = max(scores[-(i + 1)], max_severity * 0.8, bump * 0.95)
+
+        self.logger.info(
+            "historical_csv_fallback",
+            entity_id=entity_id,
+            risk_score=risk_score,
+            snapshot=str(self._latest_supplier_snapshot_path()),
+        )
+        return scores
     
     def _extract_influential_neighbors(
         self,
