@@ -94,6 +94,9 @@ train-risk:  ## Train XGBoost risk model with MLflow tracking
 score-suppliers:  ## Score all suppliers and write risk_score to Neo4j
 	$(PY) scripts/score_suppliers.py
 
+export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
+	$(PY) scripts/export_graph_snapshots.py
+
 demo:  ## Bootstrap infra, seed data, and run unit tests for portfolio demo
 	bash scripts/demo.sh
 

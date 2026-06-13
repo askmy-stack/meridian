@@ -124,6 +124,18 @@ class MonteCarloSimulator:
         )
         
         self._propagation_engine = None
+
+    def _get_bfs_engine(self):
+        """Lazy-load Neo4j BFS propagation engine."""
+        if self._propagation_engine is None:
+            try:
+                from .propagation import BFSPropagationEngine
+
+                self._propagation_engine = BFSPropagationEngine()
+            except Exception as exc:
+                self.logger.warning("bfs_engine_unavailable", error=str(exc))
+                self._propagation_engine = False
+        return self._propagation_engine if self._propagation_engine is not False else None
     
     def simulate(
         self,
@@ -271,16 +283,30 @@ class MonteCarloSimulator:
         self,
         scenario: DisruptionScenario,
         severity: float,
-        supplier_ids: Optional[List[str]]
+        supplier_ids: Optional[List[str]],
     ) -> Dict[str, List[str]]:
-        """Propagate disruption through supply chain network.
-        
-        Uses BFS-like propagation with probabilistic spread.
-        """
+        """Propagate disruption through supply chain network."""
+        engine = self._get_bfs_engine()
+        if engine is not None:
+            try:
+                result = engine.propagate(
+                    source_entity_id=scenario.affected_entity_id,
+                    source_entity_type=scenario.entity_type,
+                    impact_score=severity,
+                    affected_skus=scenario.affected_skus,
+                )
+                return {
+                    "suppliers": list(result.affected_suppliers),
+                    "skus": list(result.affected_skus),
+                    "routes": [],
+                }
+            except Exception as exc:
+                self.logger.warning("bfs_propagation_failed", error=str(exc))
+
         affected = {
             "suppliers": set(),
             "skus": set(),
-            "routes": set()
+            "routes": set(),
         }
         
         # Add initial affected entity

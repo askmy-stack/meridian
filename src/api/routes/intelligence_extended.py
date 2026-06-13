@@ -146,3 +146,34 @@ async def risk_copilot(body: CopilotRequest) -> CopilotResponse:
         related_suppliers=names,
         generated_at=datetime.now().isoformat(),
     )
+
+
+@router.get("/forecast/{supplier_id}")
+def supplier_risk_forecast(
+    supplier_id: str,
+    horizon_days: int = 7,
+) -> dict:
+    """7/14/30-day risk trajectory (TGN stub with LSTM fallback)."""
+    from ...forecasting.tgn_forecaster import get_tgn_forecaster
+
+    forecaster = get_tgn_forecaster()
+    forecast = forecaster.predict(
+        entity_id=supplier_id,
+        entity_type="supplier",
+        horizon_days=horizon_days,
+    )
+    payload = forecast.to_dict()
+    payload["model"] = "tgn" if forecaster.is_available() else "lstm_fallback"
+    payload["methodology"] = "docs/METRICS.md#forecasting-tgn--research-track"
+    return payload
+
+
+@router.post("/causal/assess")
+def assess_causal_link(
+    event_severities: List[float],
+    supplier_risk_deltas: List[float],
+) -> dict:
+    """DoWhy causal assessment for event → supplier risk (D-005)."""
+    from ...causal.dowhy_engine import assess_event_supplier_link
+
+    return assess_event_supplier_link(event_severities, supplier_risk_deltas).to_dict()
