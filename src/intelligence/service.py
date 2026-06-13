@@ -437,9 +437,16 @@ class IntelligenceService:
             return {"error": "Supplier not found"}
         
         # Score current risk
-        features = FeatureVector(
+        from ..graph import get_neo4j_client
+        from .feature_builder import build_supplier_features
+
+        client = get_neo4j_client()
+        features = build_supplier_features(
+            supplier_id,
             single_source_flag=supplier.single_source_flag or False,
-            critical_flag=supplier.critical_flag or False
+            critical_flag=getattr(supplier, "critical_flag", False) or False,
+            country_iso=supplier.country_iso,
+            neo4j_client=client,
         )
         
         risk = None

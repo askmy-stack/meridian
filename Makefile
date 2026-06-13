@@ -88,6 +88,12 @@ load-vessels:  ## Consume AIS events into Neo4j Vessel nodes
 pipeline-refresh:  ## GDELT + ACLED + AIS → Kafka → Neo4j → entity links → alerts
 	$(PY) scripts/pipeline_refresh.py
 
+train-risk:  ## Train XGBoost risk model with MLflow tracking
+	$(PY) scripts/train_risk_model.py
+
+score-suppliers:  ## Score all suppliers and write risk_score to Neo4j
+	$(PY) scripts/score_suppliers.py
+
 demo:  ## Bootstrap infra, seed data, and run unit tests for portfolio demo
 	bash scripts/demo.sh
 

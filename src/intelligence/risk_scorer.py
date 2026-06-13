@@ -12,6 +12,7 @@ Risk Factors:
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any
 
 import numpy as np
@@ -486,7 +487,12 @@ def get_risk_scorer() -> XGBoostRiskScorer:
     """Get or create singleton risk scorer."""
     global _scorer
     if _scorer is None:
-        _scorer = XGBoostRiskScorer()
+        model_path = os.getenv("RISK_MODEL_PATH")
+        if not model_path:
+            default = Path(__file__).resolve().parents[2] / "models" / "risk_scorer.xgb"
+            if default.exists():
+                model_path = str(default)
+        _scorer = XGBoostRiskScorer(model_path=model_path)
     return _scorer
 
 
