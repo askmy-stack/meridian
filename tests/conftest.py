@@ -23,6 +23,11 @@ def _set_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     # Stable JWT key for tests (does not match prod requirements; testing only)
     monkeypatch.setenv("JWT_SECRET_KEY", "test-secret-do-not-use-in-prod-x" * 2)
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+    # Align with docker-compose host port mapping (7688) when not set by CI
+    if not os.getenv("NEO4J_URI"):
+        monkeypatch.setenv("NEO4J_URI", "bolt://localhost:7688")
+    if not os.getenv("NEO4J_PASSWORD"):
+        monkeypatch.setenv("NEO4J_PASSWORD", "meridian_password")
 
 
 @pytest.fixture(autouse=True)

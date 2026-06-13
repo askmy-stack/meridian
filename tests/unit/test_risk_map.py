@@ -10,6 +10,7 @@ from src.api.main import app
 client = TestClient(app)
 
 
+@pytest.mark.neo4j_required
 def test_risk_map_supplier_geojson_shape() -> None:
     response = client.get("/visualization/risk-map", params={"entity_type": "supplier"})
     assert response.status_code == 200

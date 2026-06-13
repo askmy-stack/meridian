@@ -251,12 +251,21 @@ def build_map_layers_payload(
             logger.warning("map_layers_routes_skipped", error=str(exc))
             layers["trade_routes"] = {"type": "FeatureCollection", "features": [], "metadata": {"count": 0}}
 
-    if entity_type == "all":
-        layers["entities"] = {
-            et: build_entity_layer(et) for et in ("supplier", "port", "chokepoint")
-        }
-    else:
-        layers["entities"] = build_entity_layer(entity_type)
+    empty_entities = {"type": "FeatureCollection", "features": [], "metadata": {"count": 0}}
+    try:
+        if entity_type == "all":
+            layers["entities"] = {
+                et: build_entity_layer(et) for et in ("supplier", "port", "chokepoint")
+            }
+        else:
+            layers["entities"] = build_entity_layer(entity_type)
+    except Exception as exc:
+        logger.warning("map_layers_entities_skipped", error=str(exc))
+        layers["entities"] = (
+            {et: empty_entities for et in ("supplier", "port", "chokepoint")}
+            if entity_type == "all"
+            else empty_entities
+        )
 
     return {"layers": layers}
 

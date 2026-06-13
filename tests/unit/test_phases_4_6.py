@@ -88,7 +88,15 @@ def test_copilot_maps_red_sea() -> None:
 def test_simulation_compare_requires_two_ids() -> None:
     with patch("src.api.routes.simulation.propagate_disruption") as mock_prop, patch(
         "src.api.routes.simulation.simulate_disruption"
-    ) as mock_sim:
+    ) as mock_sim, patch(
+        "src.api.routes.simulation._build_map_overlay",
+        return_value={
+            "epicenter": None,
+            "affected_suppliers": {"type": "FeatureCollection", "features": []},
+            "region": "test",
+            "timeline_projection_days": 0,
+        },
+    ):
         mock_prop.return_value.to_dict.return_value = {
             "suppliers_affected": 3,
             "revenue_at_risk": 1000,

@@ -34,9 +34,45 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-cov
 
-    - name: Run tests
+    - name: Start Neo4j with Docker Compose
+      env:
+        NEO4J_PASSWORD: meridian_password
+      run: docker compose up -d neo4j
+
+    - name: Wait for Neo4j to be ready
+      env:
+        NEO4J_PASSWORD: meridian_password
       run: |
-        python -m pytest tests/ -v --cov=src --cov-report=xml -m "not neo4j_required"
+        for i in $(seq 1 30); do
+          if docker compose exec -T neo4j cypher-shell -u neo4j -p "$NEO4J_PASSWORD" "RETURN 1" > /dev/null 2>&1; then
+            echo "Neo4j is ready"
+            exit 0
+          fi
+          echo "Waiting for Neo4j... ($i/30)"
+          sleep 2
+        done
+        echo "Neo4j failed to start"
+        docker compose logs neo4j
+        exit 1
+
+    - name: Seed Neo4j demo data
+      env:
+        NEO4J_URI: bolt://localhost:7688
+        NEO4J_USER: neo4j
+        NEO4J_PASSWORD: meridian_password
+      run: make seed-all
+
+    - name: Run tests
+      env:
+        NEO4J_URI: bolt://localhost:7688
+        NEO4J_USER: neo4j
+        NEO4J_PASSWORD: meridian_password
+      run: |
+        python -m pytest tests/ -v --cov=src --cov-report=xml
+
+    - name: Stop Neo4j
+      if: always()
+      run: docker compose down -v
 
     - name: Frontend unit tests and build
       run: |
