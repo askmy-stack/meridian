@@ -68,14 +68,14 @@ export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520
 
   if (nodes.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
+      <div className="flex items-center justify-center h-64 text-slate-500">
         No network data to display.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="p-2">
       <svg width={width} height={height} className="w-full">
         {/* Edges */}
         <g stroke="#cbd5e1" strokeWidth="1">
@@ -142,7 +142,7 @@ export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520
       </svg>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-gray-700">
+      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
         {layout.groups.map((g) => (
           <span key={g} className="inline-flex items-center gap-1">
             <span

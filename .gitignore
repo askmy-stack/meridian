@@ -20,6 +20,7 @@ venv/
 *.log
 logs/
 tmp/
+.data/
 
 # OS and editor files
 .DS_Store

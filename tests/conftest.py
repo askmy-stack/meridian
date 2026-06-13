@@ -25,6 +25,19 @@ def _set_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
 
 
+@pytest.fixture(autouse=True)
+def _neo4j_marker_skip(request: pytest.FixtureRequest) -> None:
+    """Skip tests marked neo4j_required when graph is unavailable."""
+    if request.node.get_closest_marker("neo4j_required") is None:
+        return
+    try:
+        from src.graph import get_neo4j_client
+        if not get_neo4j_client().health_check():
+            pytest.skip("Neo4j not reachable; start `docker compose up -d` and `make seed-all`")
+    except Exception as exc:  # noqa: BLE001
+        pytest.skip(f"Neo4j client unavailable: {exc}")
+
+
 @pytest.fixture
 def neo4j_required() -> None:
     """Skip a test if Neo4j is not reachable."""

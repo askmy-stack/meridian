@@ -13,16 +13,16 @@
 
 | Phase | Scope | Status |
 |-------|-------|--------|
-| 1 | Kafka ingestion (GDELT / ACLED / AIS) | ✅ Complete — Producers implemented with 28 unit tests |
-| 2 | Entity resolution + Neo4j knowledge graph | ✅ Complete — Graph client, fuzzy matching, NER pipeline |
-| 3 | Intelligence engine (BERT / XGBoost / NER) | ✅ Complete — Event classifier, risk scorer with SHAP, weak signal detection |
-| 4 | Simulation + alerting (Monte Carlo / BFS / Slack) | ✅ Complete — Disruption simulator, Slack alerting service |
-| 5 | Frontend dashboard + JWT auth | ✅ Complete — React + Vite + Tailwind, JWT-secured API |
-| 6 | Production deployment (Terraform / CI/CD) | ✅ Complete — IaC with AWS ECS, GitHub Actions workflows |
+| 1 | Kafka ingestion (GDELT / ACLED / AIS) | ✅ Producers + unit tests |
+| 2 | Entity resolution + Neo4j knowledge graph | ✅ Graph client, fuzzy matching, seed scripts |
+| 3 | Intelligence engine (BERT / XGBoost / SHAP) | ⚠️ Functional with synthetic/off-the-shelf models; TGN is a stub |
+| 4 | Simulation + alerting (Monte Carlo / BFS / Slack) | ✅ API + UI demo; graph propagation partial without full SKU graph |
+| 5 | Frontend dashboard + JWT auth | ✅ 7-page React app; JWT enforced on writes in production |
+| 6 | Production deployment (Terraform / CI/CD) | ⚠️ ECS API scaffold; managed Neo4j/Kafka not wired |
 
-**All core features implemented and tested. Ready for production deployment.**
+**Portfolio demo ready** via `make demo`. Production hardening (managed data plane, CI image pinning) is in progress.
 
-📖 **New here?** Start with [`docs/QUICKSTART.md`](docs/QUICKSTART.md) — get an event flowing through the pipeline in 5 minutes.
+📖 **New here?** Run `make demo`, then `make dev` + `make dev-frontend`. See [`docs/QUICKSTART.md`](docs/QUICKSTART.md).
 🤝 **Want to contribute?** Read [`CONTRIBUTING.md`](CONTRIBUTING.md) and check the [good first issues](https://github.com/askmy-stack/meridian/labels/good%20first%20issue).
 
 ---

@@ -36,7 +36,14 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/ -v --cov=src --cov-report=xml
+        python -m pytest tests/ -v --cov=src --cov-report=xml -m "not neo4j_required"
+
+    - name: Frontend unit tests and build
+      run: |
+        cd frontend
+        npm ci
+        npm run test
+        npm run build
 
     - name: Upload coverage
       uses: codecov/codecov-action@v3

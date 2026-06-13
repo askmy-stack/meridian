@@ -1,4 +1,4 @@
-.PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean
+.PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo
 
 PY ?= python3
 PIP ?= pip
@@ -26,7 +26,7 @@ logs:  ## Tail compose logs
 ## --- Dev loops ---
 
 dev:  ## Start API (hot reload) — requires `make up` first
-	uvicorn src.api.main:app --reload --port 8000
+	uvicorn src.api.main:app --reload --port 8002
 
 dev-frontend:  ## Start frontend dev server
 	cd frontend && npm run dev
@@ -65,7 +65,13 @@ seed:  ## Seed Neo4j with ports / chokepoints
 seed-suppliers:  ## Seed Neo4j with demo supplier data
 	$(PY) scripts/seed_suppliers.py --file data/sample_suppliers.csv
 
-seed-all: seed seed-suppliers  ## Seed all demo data (ports + suppliers)
+seed-demo:  ## Seed demo disruption events for digest/alerts narrative
+	$(PY) scripts/seed_demo_scenarios.py
+
+seed-all: seed seed-suppliers seed-demo  ## Seed all demo data (ports + suppliers + events)
+
+demo:  ## Bootstrap infra, seed data, and run unit tests for portfolio demo
+	bash scripts/demo.sh
 
 validate-env:  ## Validate required env vars
 	$(PY) scripts/validate_env.py --env-file .env

@@ -92,6 +92,7 @@ def create_supplier_nodes(client: Neo4jClient, suppliers: List[Dict], dry_run: b
         s.annual_volume_usd = supplier.annual_volume_usd,
         s.risk_score = supplier.risk_score,
         s.critical = supplier.critical,
+        s.critical_flag = supplier.critical,
         s.created_at = datetime(),
         s.updated_at = datetime()
     RETURN count(s) as created
@@ -124,7 +125,7 @@ def link_suppliers_to_ports(client: Neo4jClient, suppliers: List[Dict], dry_run:
     query = """
     UNWIND $links AS link
     MATCH (s:Supplier {id: link.supplier_id})
-    MATCH (p:Port {code: link.port_code})
+    MATCH (p:Port {locode: link.port_code})
     MERGE (s)-[r:SHIPS_VIA]->(p)
     SET r.created_at = datetime()
     RETURN count(r) as linked
@@ -366,8 +367,8 @@ def main():
     if not args.dry_run:
         client = Neo4jClient(
             uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
-            user=os.getenv("NEO4J_USER", "neo4j"),
-            password=os.getenv("NEO4J_PASSWORD", "meridian_password")
+            username=os.getenv("NEO4J_USER", "neo4j"),
+            password=os.getenv("NEO4J_PASSWORD", "meridian_password"),
         )
         
         # Clear if requested

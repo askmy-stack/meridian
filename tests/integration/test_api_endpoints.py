@@ -53,12 +53,9 @@ def test_alerts_endpoint_exists(client) -> None:
     assert "alerts" in body and "total" in body
 
 
-def test_risk_endpoint_does_not_crash_on_missing_datetime(
+def test_supplier_explanation_endpoint_handles_missing_supplier(
     client, neo4j_required  # noqa: ARG001
 ) -> None:
-    """B-01 regression: /risk/{id} must not raise NameError on datetime.
-
-    We accept any 2xx/4xx response — the bug was an unhandled NameError 500.
-    """
-    resp = client.get("/risk/__nonexistent_supplier__")
+    """Regression: /suppliers/{id}/explanation must not raise unhandled 500."""
+    resp = client.get("/suppliers/__nonexistent_supplier__/explanation")
     assert resp.status_code in (200, 404, 422, 503)

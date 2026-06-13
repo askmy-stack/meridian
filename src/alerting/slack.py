@@ -220,6 +220,11 @@ class SlackAlertingService:
             self._update_rate_limit_cache(alert.tier)
             # Record in history for API consumption
             self._history.append(alert)
+            try:
+                from .persistence import get_alert_store
+                get_alert_store().append(alert)
+            except Exception as exc:
+                logger.warning("alert_persist_failed", error=str(exc))
         
         return success
     
@@ -450,6 +455,32 @@ class SlackAlertingService:
         tier: Optional[AlertTier] = None,
     ) -> List[Alert]:
         """Return most recent alerts (newest first), optionally filtered by tier."""
+        try:
+            from .persistence import get_alert_store
+            stored = get_alert_store().list_recent(limit=limit, tier=tier)
+            if stored:
+                result: List[Alert] = []
+                for row in stored:
+                    try:
+                        result.append(
+                            Alert(
+                                tier=AlertTier(row["tier"]),
+                                title=row["title"],
+                                message=row["message"],
+                                entity_id=row.get("entity_id"),
+                                entity_type=row.get("entity_type"),
+                                risk_score=row.get("risk_score"),
+                                recommendations=row.get("recommendations") or [],
+                                timestamp=row.get("timestamp", datetime.now().isoformat()),
+                            )
+                        )
+                    except (KeyError, ValueError):
+                        continue
+                if result:
+                    return result
+        except Exception as exc:
+            logger.warning("alert_store_read_failed", error=str(exc))
+
         alerts = list(self._history)
         alerts.reverse()  # newest first
         if tier is not None:
@@ -458,14 +489,20 @@ class SlackAlertingService:
 
     def get_stats(self) -> Dict[str, Any]:
         """Get service statistics."""
+        by_tier = {tier.value: 0 for tier in AlertTier}
+        for alert in self._history:
+            by_tier[alert.tier.value] = by_tier.get(alert.tier.value, 0) + 1
+
         return {
+            "total": len(self._history),
+            "by_tier": by_tier,
             "history_size": len(self._history),
             "dedup_cache_size": len(self._dedup_cache),
             "webhook_configured": bool(self.webhook_url),
             "last_alerts_by_tier": {
                 tier.value: self._rate_limit_cache.get(tier, "never").__str__()
                 for tier in AlertTier
-            }
+            },
         }
 
 

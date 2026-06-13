@@ -53,7 +53,7 @@ If unit tests pass, the codebase imports cleanly on your machine.
 ## 4. Send a real GDELT event through Kafka
 
 ```bash
-python -m src.producers.gdelt_producer
+python -m src.producers gdelt
 ```
 
 You should see structured JSON logs like:
@@ -63,12 +63,14 @@ You should see structured JSON logs like:
 ```
 
 Open the Kafka UI (`http://localhost:8081`) and inspect the
-`meridian.events.conflict` topic — the event should be there.
+`meridian.gdelt.conflict` topic — the event should be there.
 
-## 5. Seed the knowledge graph
+## 5. Seed the knowledge graph (one command)
 
 ```bash
-make seed
+make demo    # compose up + seed ports, suppliers, and demo disruption events
+# or step by step:
+make seed-all
 ```
 
 This loads major ports and chokepoints into Neo4j. Open the Neo4j browser and
@@ -104,8 +106,13 @@ npm install
 npm run dev
 ```
 
-Visit http://localhost:5173. The Alerts page is wired to the live API; emit
-test alerts via `POST /alerts/test` to populate it.
+Visit http://localhost:5173. Demo flow:
+
+1. **Dashboard** — weekly digest after `make seed-all`
+2. **Map** — geospatial risk (add `VITE_MAPBOX_TOKEN` for interactive tiles)
+3. **Suppliers** — click a supplier for SHAP explanations
+4. **Simulate** — run Red Sea / Taiwan / Suez preset scenarios
+5. **Alerts** — use **Emit test alert** button
 
 ## What's next?
 

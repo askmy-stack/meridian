@@ -439,11 +439,11 @@ class BFSPropagationEngine:
         
         for source_id in source_options:
             # Run propagation from source
-            result = self.propagate(
+            shallow = BFSPropagationEngine(max_depth=3)
+            result = shallow.propagate(
                 source_entity_id=source_id,
-                source_entity_type="chokepoint",  # Assume sources are chokepoints
+                source_entity_type="chokepoint",
                 impact_score=0.5,
-                max_depth=3
             )
             
             # Check if target is affected
