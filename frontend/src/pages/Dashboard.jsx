@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpen,
   Download,
   Globe,
   Play,
@@ -20,12 +21,22 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { fetchStats, fetchWeeklyDigest, getDigestExportUrl } from '../api/client';
+import {
+  fetchMetricsMethodology,
+  fetchStats,
+  fetchWeeklyDigest,
+  getDigestExportUrl,
+} from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { LoadingState } from '../components/ui/LoadingState';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
 import { riskColor, riskPillClass } from '../lib/risk';
+
+function kpiDefinition(methodology, id, fallback) {
+  return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
+}
 
 export function Dashboard() {
   const statsQuery = useQuery(['stats'], fetchStats, { staleTime: 60_000, retry: 1 });
@@ -33,41 +44,62 @@ export function Dashboard() {
     staleTime: 5 * 60_000,
     retry: 1,
   });
+  const methodologyQuery = useQuery(['metrics-methodology'], fetchMetricsMethodology, {
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
 
   const loading = statsQuery.isLoading && digestQuery.isLoading;
   const stats = statsQuery.data;
   const digest = digestQuery.data;
+  const methodology = methodologyQuery.data;
   const topRisks = digest?.top_risks ?? [];
   const criticalCount = topRisks.filter((r) => r.risk_category === 'CRITICAL').length;
 
   const chartData = topRisks.slice(0, 6).map((r) => ({
     name: r.name?.split(' ').slice(0, 2).join(' ') || r.supplier_id,
-    risk: Math.round((r.risk_score ?? 0) * 100),
+    scri: Math.round((r.risk_score ?? 0) * 100),
   }));
 
   if (loading) return <LoadingState label="Loading command center…" />;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto">
       <DemoBanner />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden rounded-3xl border border-blue-500/20 p-8 sm:p-10"
+      <section
+        className="relative overflow-hidden rounded-3xl border border-blue-500/20 p-8 sm:p-10"
         style={{
-          background: 'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(15,22,41,0.95) 50%, rgba(7,11,20,1) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(15,22,41,0.95) 50%, rgba(7,11,20,1) 100%)',
         }}
       >
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
         <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-2">
-              Supply Chain Command Center
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+                Supply Chain Command Center
+              </p>
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/25">
+                {methodology?.index_name ?? 'SCRI'} · 0–100
+              </span>
+            </div>
             <h1 className="page-title text-4xl sm:text-5xl">Risk Intelligence</h1>
-            <p className="mt-3 text-slate-400 max-w-xl text-lg">
-              {digest?.narrative ||
-                'Real-time geopolitical signals mapped to your supplier network — before disruption hits production.'}
+            <p className="mt-3 text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed">
+              {methodology?.description ||
+                digest?.narrative ||
+                'Geopolitical signals mapped to your supplier network with explainable SCRI scores.'}
             </p>
+            <a
+              href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-4 text-xs text-blue-400 hover:text-blue-300"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              SCRI methodology & references
+            </a>
           </div>
           <div className="flex flex-wrap gap-3">
             <button
@@ -93,57 +125,108 @@ export function Dashboard() {
         </div>
       </section>
 
-      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
           icon={<Users className="h-6 w-6" />}
           title="Suppliers tracked"
           value={stats?.suppliers?.total ?? 0}
-          subtitle="In Neo4j knowledge graph"
+          subtitle="Canonical nodes in Neo4j"
           accent="blue"
+          tooltip={
+            <MetricTooltip
+              label="Suppliers tracked"
+              definition={kpiDefinition(
+                methodology,
+                'suppliers_tracked',
+                'Count of Supplier nodes in the knowledge graph.'
+              )}
+            />
+          }
         />
         <StatCard
           icon={<AlertTriangle className="h-6 w-6" />}
-          title="Critical risks"
+          title="Critical SCRI (≥75)"
           value={criticalCount}
-          subtitle={criticalCount ? 'Immediate review required' : 'All clear'}
+          subtitle={criticalCount ? 'Executive escalation band' : 'No suppliers in CRITICAL band'}
           accent="red"
           trend={criticalCount ? '↑ elevated' : null}
+          tooltip={
+            <MetricTooltip
+              label="Critical SCRI"
+              definition={kpiDefinition(
+                methodology,
+                'critical_risks',
+                'Suppliers with SCRI ≥ 0.75 per XGBoost + SHAP model.'
+              )}
+              reference="Wagner & Bode supply chain vulnerability"
+            />
+          }
         />
         <StatCard
           icon={<Globe className="h-6 w-6" />}
-          title="Active events"
+          title="Active events (7d)"
           value={digest?.summary?.total_events ?? 0}
-          subtitle="Last 7 days"
+          subtitle="GDELT / ACLED ingested signals"
           accent="green"
+          tooltip={
+            <MetricTooltip
+              label="Active events"
+              definition={kpiDefinition(
+                methodology,
+                'active_events',
+                'Event nodes ingested in the last 7 days.'
+              )}
+              reference="GDELT Goldstein-scale severity"
+            />
+          }
         />
         <StatCard
           icon={<TrendingUp className="h-6 w-6" />}
-          title="Peak risk score"
+          title="Peak SCRI"
           value={
-            topRisks[0]?.risk_score
-              ? `${Math.round(topRisks[0].risk_score * 100)}%`
-              : '—'
+            topRisks[0]?.risk_score ? `${Math.round(topRisks[0].risk_score * 100)}` : '—'
           }
-          subtitle={topRisks[0]?.name ?? 'Seed data to populate'}
+          subtitle={topRisks[0]?.name ?? 'Run make score-suppliers'}
           accent="purple"
+          tooltip={
+            <MetricTooltip
+              label="Peak SCRI"
+              definition={kpiDefinition(
+                methodology,
+                'peak_scri',
+                'Highest supplier SCRI in the weekly digest.'
+              )}
+              reference="SHAP-explained XGBoost score"
+            />
+          }
         />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Chart */}
         <Panel
-          title="Top supplier risk scores"
-          subtitle="XGBoost-scored exposure from live graph"
+          title="Top supplier SCRI"
+          subtitle="XGBoost + SHAP · 30-day disruption probability proxy"
           className="xl:col-span-2"
         >
           {chartData.length > 0 ? (
-            <div className="h-64">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
+                <BarChart data={chartData} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
                   <XAxis dataKey="name" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} domain={[0, 100]} />
+                  <YAxis
+                    tick={{ fill: '#94a3b8', fontSize: 11 }}
+                    axisLine={false}
+                    domain={[0, 100]}
+                    tickFormatter={(v) => `${v}`}
+                    label={{
+                      value: 'SCRI',
+                      angle: -90,
+                      position: 'insideLeft',
+                      fill: '#64748b',
+                      fontSize: 11,
+                    }}
+                  />
                   <Tooltip
                     contentStyle={{
                       background: '#151f38',
@@ -151,9 +234,9 @@ export function Dashboard() {
                       borderRadius: 12,
                       color: '#f1f5f9',
                     }}
-                    formatter={(v) => [`${v}%`, 'Risk']}
+                    formatter={(v) => [`${v} / 100`, 'SCRI']}
                   />
-                  <Bar dataKey="risk" radius={[6, 6, 0, 0]} fill="url(#riskGradient)" />
+                  <Bar dataKey="scri" radius={[6, 6, 0, 0]} fill="url(#riskGradient)" />
                   <defs>
                     <linearGradient id="riskGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#3b82f6" />
@@ -164,18 +247,20 @@ export function Dashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <p className="text-slate-500 text-sm py-12 text-center">Run make seed-all to populate risk scores</p>
+            <p className="text-slate-500 text-sm py-12 text-center">
+              Run <code className="text-blue-400">make seed-all</code> and{' '}
+              <code className="text-blue-400">make score-suppliers</code>
+            </p>
           )}
         </Panel>
 
-        {/* Quick actions */}
-        <Panel title="Quick actions" subtitle="Demo workflow shortcuts">
+        <Panel title="Demo workflow" subtitle="2–3 minute portfolio path">
           <div className="space-y-3">
             {[
-              { to: '/simulate', icon: Zap, label: 'Red Sea disruption sim', desc: 'BFS + Monte Carlo' },
-              { to: '/suppliers', icon: Users, label: 'SHAP explanations', desc: 'Why is risk elevated?' },
-              { to: '/alerts', icon: AlertTriangle, label: 'Emit live alert', desc: 'Slack-ready pipeline' },
-              { to: '/map', icon: Globe, label: 'Global risk map', desc: 'Geospatial heat view' },
+              { to: '/map', icon: Globe, label: 'Global risk map', desc: 'Conflict + routes + events' },
+              { to: '/simulate', icon: Zap, label: 'Disruption simulator', desc: 'BFS · 1,000-run Monte Carlo' },
+              { to: '/suppliers', icon: Users, label: 'SHAP explanations', desc: 'Why SCRI is elevated' },
+              { to: '/alerts', icon: AlertTriangle, label: 'Live alerts', desc: 'Tiered Slack-ready feed' },
             ].map(({ to, icon: Icon, label, desc }) => (
               <Link
                 key={to}
@@ -189,24 +274,23 @@ export function Dashboard() {
                   <p className="text-sm font-medium text-white">{label}</p>
                   <p className="text-xs text-slate-500">{desc}</p>
                 </div>
-                <ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-blue-400 transition-colors" />
+                <ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-blue-400 transition-colors shrink-0" />
               </Link>
             ))}
           </div>
         </Panel>
       </div>
 
-      {/* Top risks list */}
       {topRisks.length > 0 && (
-        <Panel title="Priority suppliers" subtitle="Ranked by composite risk score">
+        <Panel title="Priority suppliers" subtitle="Ranked by SCRI (Supply Chain Risk Index)">
           <div className="space-y-2">
             {topRisks.map((risk, i) => (
               <Link
                 key={risk.supplier_id}
-                to="/suppliers"
+                to={`/suppliers?highlight=${encodeURIComponent(risk.supplier_id)}`}
                 className="flex items-center gap-4 p-4 rounded-xl border border-slate-700/40 hover:border-blue-500/30 hover:bg-slate-800/30 transition-all"
               >
-                <span className="text-2xl font-bold text-slate-600 w-8">#{i + 1}</span>
+                <span className="text-2xl font-bold text-slate-600 w-8 tabular-nums">#{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-white truncate">{risk.name}</p>
                   <div className="mt-2 h-1.5 rounded-full bg-slate-800 overflow-hidden">
@@ -219,7 +303,13 @@ export function Dashboard() {
                     />
                   </div>
                 </div>
-                <span className={`risk-pill ${riskPillClass(risk.risk_score)}`}>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-bold text-white tabular-nums">
+                    {Math.round((risk.risk_score ?? 0) * 100)}
+                  </p>
+                  <p className="text-[10px] text-slate-500 uppercase">SCRI</p>
+                </div>
+                <span className={`risk-pill shrink-0 ${riskPillClass(risk.risk_score)}`}>
                   {risk.risk_category}
                 </span>
               </Link>
@@ -229,11 +319,11 @@ export function Dashboard() {
       )}
 
       {digest?.recommendations?.length > 0 && (
-        <Panel title="AI recommendations" subtitle="Generated from weekly digest analysis">
+        <Panel title="Recommended actions" subtitle="Derived from digest — not LLM risk scores">
           <ul className="space-y-2">
             {digest.recommendations.map((rec, i) => (
-              <li key={i} className="flex gap-3 text-sm text-slate-300">
-                <span className="text-blue-400 font-bold">{i + 1}.</span>
+              <li key={i} className="flex gap-3 text-sm text-slate-300 leading-relaxed">
+                <span className="text-blue-400 font-bold tabular-nums">{i + 1}.</span>
                 {rec}
               </li>
             ))}

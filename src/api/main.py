@@ -26,6 +26,7 @@ from .routes import alerts as alerts_routes
 from .routes import analytics as analytics_routes
 from .routes import geopolitical as geopolitical_routes
 from .routes import intelligence_extended as intelligence_extended_routes
+from .routes import metrics as metrics_routes
 from .routes import simulation as simulation_routes
 
 logger = structlog.get_logger(__name__)
@@ -76,6 +77,7 @@ app.include_router(alerts_routes.router)
 app.include_router(analytics_routes.router)
 app.include_router(geopolitical_routes.router)
 app.include_router(intelligence_extended_routes.router)
+app.include_router(metrics_routes.router)
 app.include_router(simulation_routes.router)
 
 

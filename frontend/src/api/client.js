@@ -47,6 +47,11 @@ export async function fetchStats() {
   return data;
 }
 
+export async function fetchMetricsMethodology() {
+  const { data } = await apiClient.get('/metrics/methodology');
+  return data;
+}
+
 export async function fetchWeeklyDigest() {
   const { data } = await apiClient.post('/intelligence/weekly-digest');
   return data;

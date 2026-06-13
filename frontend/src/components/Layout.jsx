@@ -116,8 +116,8 @@ export function Layout() {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <p className="text-xs text-slate-500 hidden sm:block">
-              Geopolitical signals → Knowledge graph → Risk scores → Action
+            <p className="text-xs text-slate-500 hidden md:block truncate max-w-md">
+              SCRI · Signals → Graph → Explainable scores
             </p>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-slate-500">API</span>
@@ -128,7 +128,7 @@ export function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 w-full">
           <Outlet />
         </main>
       </div>
