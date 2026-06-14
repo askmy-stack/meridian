@@ -18,3 +18,6 @@ def test_causal_association_only_with_small_sample() -> None:
     assert result.method == "association_only"
     assert result.effect_size is not None
     assert result.sample_count == 10
+    assert result.correlation_ci_lower is not None
+    assert result.correlation_ci_upper is not None
+    assert result.correlation_ci_lower <= result.effect_size <= result.correlation_ci_upper

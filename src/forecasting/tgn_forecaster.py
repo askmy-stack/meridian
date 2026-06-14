@@ -24,6 +24,9 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
+DEFAULT_TGN_MODEL_PATH = Path(os.getenv("TGN_MODEL_PATH", "models/tgn_v1.pt"))
+TGN_SEQ_LEN = 7
+
 
 @dataclass
 class TGNForecast:
@@ -104,24 +107,79 @@ class TGNForecaster:
             model_path: Path to trained TGN model
             use_gpu: Use GPU for inference
         """
-        self.model_path = model_path
+        self.model_path = Path(model_path) if model_path else DEFAULT_TGN_MODEL_PATH
         self.use_gpu = use_gpu
         
         self.logger = logger.bind(
             forecaster="TGNForecaster",
-            status="stub_implementation"
         )
         
         self._model = None
+        self._model_backend: Optional[str] = None
+        self._seq_len = TGN_SEQ_LEN
         self._is_trained = False
         
-        self.logger.warning(
-            "tgn_stub_initialized",
-            message="TGN is stub implementation - using fallback models"
-        )
+        if self._try_load_checkpoint():
+            self.logger.info("tgn_checkpoint_loaded", path=str(self.model_path))
+        else:
+            self.logger.warning(
+                "tgn_stub_initialized",
+                message="No TGN checkpoint — using fallback models",
+            )
         
         # Initialize fallback models
         self._init_fallbacks()
+    
+    def _try_load_checkpoint(self) -> bool:
+        """Load GRU v1 checkpoint if present."""
+        if not self.model_path.is_file():
+            return False
+        try:
+            import torch
+
+            payload = torch.load(self.model_path, map_location="cpu", weights_only=False)
+            backend = payload.get("backend", "pytorch_gru")
+            if backend == "pytorch_gru" and "model_state" in payload:
+                import torch.nn as nn
+
+                hidden_size = 16
+                seq_len = int(payload.get("seq_len", TGN_SEQ_LEN))
+                self._seq_len = seq_len
+
+                class TinyGRU(nn.Module):
+                    def __init__(self) -> None:
+                        super().__init__()
+                        self.gru = nn.GRU(input_size=1, hidden_size=hidden_size, batch_first=True)
+                        self.head = nn.Linear(hidden_size, 1)
+
+                    def forward(self, batch: torch.Tensor) -> torch.Tensor:
+                        out, _ = self.gru(batch)
+                        return self.head(out[:, -1, :]).squeeze(-1)
+
+                model = TinyGRU()
+                model.load_state_dict(payload["model_state"])
+                model.eval()
+                self._model = model
+                self._model_backend = "pytorch_gru"
+                self._is_trained = True
+                return True
+        except Exception as exc:
+            self.logger.warning("tgn_checkpoint_load_failed", error=str(exc))
+
+        try:
+            import joblib
+
+            payload = joblib.load(self.model_path)
+            if payload.get("model") is not None:
+                self._model = payload["model"]
+                self._model_backend = payload.get("backend", "sklearn")
+                self._seq_len = int(payload.get("seq_len", TGN_SEQ_LEN))
+                self._is_trained = True
+                return True
+        except Exception as exc:
+            self.logger.warning("tgn_sklearn_checkpoint_failed", error=str(exc))
+
+        return False
     
     def _init_fallbacks(self) -> None:
         """Initialize fallback forecasting models."""
@@ -197,7 +255,9 @@ class TGNForecaster:
         """
         # Try TGN first if available
         if self.is_available():
-            return self._tgn_predict(entity_id, entity_type, horizon_days)
+            return self._tgn_predict(
+                entity_id, entity_type, horizon_days, historical_scores
+            )
         
         # Fallback to LSTM
         return self._fallback_predict(
@@ -208,23 +268,44 @@ class TGNForecaster:
         self,
         entity_id: str,
         entity_type: str,
-        horizon_days: int
+        horizon_days: int,
+        historical_scores: Optional[List[float]] = None,
     ) -> TGNForecast:
-        """Generate prediction using TGN model."""
-        # STUB - would run actual TGN inference
-        self.logger.error("tgn_predict_called_without_model")
-        
-        # Return placeholder
-        return TGNForecast(
-            entity_id=entity_id,
-            entity_type=entity_type,
-            forecast_date=(datetime.now() + timedelta(days=horizon_days)).isoformat(),
-            horizon_days=horizon_days,
-            predicted_risk_score=0.5,
-            confidence_interval=(0.3, 0.7),
-            influential_neighbors=[],
-            detected_patterns=["stub_implementation"]
-        )
+        """Generate prediction using trained GRU v1 checkpoint."""
+        scores = historical_scores or self._get_historical_from_graph(entity_id)
+        if not scores or len(scores) < self._seq_len:
+            return self._fallback_predict(
+                entity_id, entity_type, horizon_days, historical_scores
+            )
+
+        window = np.array(scores[-self._seq_len :], dtype=np.float32).reshape(1, self._seq_len, 1)
+        try:
+            if self._model_backend == "pytorch_gru":
+                import torch
+
+                with torch.no_grad():
+                    pred = float(self._model(torch.tensor(window)).item())
+            else:
+                flat = window.reshape(1, -1)
+                pred = float(self._model.predict(flat)[0])
+
+            pred = max(0.05, min(0.95, pred))
+            spread = 0.08
+            return TGNForecast(
+                entity_id=entity_id,
+                entity_type=entity_type,
+                forecast_date=(datetime.now() + timedelta(days=horizon_days)).isoformat(),
+                horizon_days=horizon_days,
+                predicted_risk_score=pred,
+                confidence_interval=(max(0.0, pred - spread), min(1.0, pred + spread)),
+                influential_neighbors=self._extract_influential_neighbors(entity_id),
+                detected_patterns=["gru_v1_trajectory"],
+            )
+        except Exception as exc:
+            self.logger.error("tgn_gru_predict_failed", error=str(exc))
+            return self._fallback_predict(
+                entity_id, entity_type, horizon_days, historical_scores
+            )
     
     def _fallback_predict(
         self,
@@ -461,7 +542,7 @@ class TGNForecaster:
             "predicted_risk": forecast.predicted_risk_score,
             "top_influencers": forecast.influential_neighbors[:3],
             "temporal_patterns": forecast.detected_patterns,
-            "explanation_method": "stub" if not self.is_available() else "tgn_attention",
+            "explanation_method": "gru_v1" if self.is_available() else "lstm_fallback",
             "note": "TGN provides graph-based explanations showing which neighbors influenced the prediction"
         }
         

@@ -31,6 +31,7 @@ qdrant-client==1.7.0
 # ML/Analysis
 numpy==1.26.2
 scikit-learn==1.3.2
+hmmlearn==0.3.2
 
 # Phase 3: Intelligence Engine
 # BERT Event Classifier

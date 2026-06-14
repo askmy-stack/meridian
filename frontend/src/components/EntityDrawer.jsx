@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { Globe, Play, TrendingUp, X, Zap } from 'lucide-react';
-import { fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
+import { Globe, Play, TrendingUp, X, Zap, Users } from 'lucide-react';
+import { fetchSupplierAlternatives, fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
 import { MetricTooltip } from './ui/MetricTooltip';
 import { RiskBar, RiskPill } from './ui/RiskDisplay';
 import { calibrationSublabel, useMethodology } from '../hooks/useMethodology';
@@ -22,6 +22,12 @@ export function EntityDrawer({ entity, onClose }) {
   const { data: forecast } = useQuery(
     ['supplier-forecast', supplierId],
     () => fetchSupplierForecast(supplierId, 14),
+    { enabled: Boolean(supplierId), staleTime: 120_000 },
+  );
+
+  const { data: alternatives } = useQuery(
+    ['supplier-alternatives', supplierId],
+    () => fetchSupplierAlternatives(supplierId, 5),
     { enabled: Boolean(supplierId), staleTime: 120_000 },
   );
   const { data: methodology } = useMethodology();
@@ -134,6 +140,28 @@ export function EntityDrawer({ entity, onClose }) {
               {forecast.detected_patterns?.length > 0 && (
                 <p className="text-xs text-slate-500 mt-2">{forecast.detected_patterns[0]}</p>
               )}
+            </div>
+          )}
+
+          {alternatives?.alternatives?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-2 flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                Alternative suppliers
+              </p>
+              <ul className="space-y-2">
+                {alternatives.alternatives.map((alt) => (
+                  <li
+                    key={alt.supplier_id}
+                    className="flex justify-between text-sm gap-3 rounded-lg border border-slate-800 px-3 py-2"
+                  >
+                    <span className="text-slate-300 truncate">{alt.name}</span>
+                    <span className="text-slate-500 shrink-0 tabular-nums">
+                      {Math.round((alt.risk_score ?? 0) * 100)}%
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
 

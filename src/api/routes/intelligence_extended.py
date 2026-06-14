@@ -127,7 +127,7 @@ def supplier_risk_forecast(
     supplier_id: str,
     horizon_days: int = 7,
 ) -> dict:
-    """7/14/30-day risk trajectory (TGN stub with LSTM fallback)."""
+    """7/14/30-day risk trajectory (TGN v1 GRU or LSTM fallback)."""
     from ...forecasting.tgn_forecaster import get_tgn_forecaster
 
     forecaster = get_tgn_forecaster()
@@ -140,6 +140,14 @@ def supplier_risk_forecast(
     payload["model"] = "tgn" if forecaster.is_available() else "lstm_fallback"
     payload["methodology"] = "docs/METRICS.md#forecasting-tgn--research-track"
     return payload
+
+
+@router.get("/regions/{region_id}/regime")
+def region_regime(region_id: str, days: int = 30) -> dict:
+    """3-state HMM regime (stable / escalation / crisis) for a conflict zone."""
+    from ...intelligence.hmm_regime import assess_region_regime
+
+    return assess_region_regime(region_id, days=days).to_dict()
 
 
 @router.post("/causal/assess")

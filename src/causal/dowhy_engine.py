@@ -29,9 +29,11 @@ class CausalAssessment:
     refutation_passed: bool
     disclaimer: str
     sample_count: int = 0
+    correlation_ci_lower: Optional[float] = None
+    correlation_ci_upper: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        payload = {
             "causal_claim_allowed": self.causal_claim_allowed,
             "method": self.method,
             "effect_size": self.effect_size,
@@ -39,6 +41,44 @@ class CausalAssessment:
             "disclaimer": self.disclaimer,
             "sample_count": self.sample_count,
         }
+        if self.correlation_ci_lower is not None:
+            payload["correlation_ci_lower"] = self.correlation_ci_lower
+        if self.correlation_ci_upper is not None:
+            payload["correlation_ci_upper"] = self.correlation_ci_upper
+        return payload
+
+
+def bootstrap_correlation_ci(
+    x: List[float],
+    y: List[float],
+    *,
+    n_bootstrap: int = 1000,
+    ci: float = 0.95,
+    seed: int = 42,
+) -> tuple[float, float, float]:
+    """Bootstrap Pearson correlation with percentile confidence interval."""
+    n = min(len(x), len(y))
+    if n < 2:
+        return 0.0, 0.0, 0.0
+
+    xs = np.asarray(x[:n], dtype=float)
+    ys = np.asarray(y[:n], dtype=float)
+    point = float(np.corrcoef(xs, ys)[0, 1])
+    rng = np.random.default_rng(seed)
+    samples: List[float] = []
+    for _ in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        if np.std(xs[idx]) == 0 or np.std(ys[idx]) == 0:
+            continue
+        samples.append(float(np.corrcoef(xs[idx], ys[idx])[0, 1]))
+
+    if not samples:
+        return point, point, point
+
+    alpha = (1.0 - ci) / 2.0
+    lower = float(np.quantile(samples, alpha))
+    upper = float(np.quantile(samples, 1.0 - alpha))
+    return point, lower, upper
 
 
 def assess_event_supplier_link(
@@ -60,17 +100,28 @@ def assess_event_supplier_link(
         )
 
     if not DOWHY_AVAILABLE or n < min_samples:
-        corr = float(np.corrcoef(event_severities[:n], supplier_risk_deltas[:n])[0, 1])
+        corr, ci_lo, ci_hi = bootstrap_correlation_ci(
+            event_severities[:n],
+            supplier_risk_deltas[:n],
+        )
+        disclaimer = (
+            "Correlation observed — not a verified causal claim (D-005). "
+            "Install DoWhy and accumulate ≥30 paired samples for causal estimation."
+        )
+        if n < min_samples:
+            disclaimer += (
+                f" Bootstrap {int(0.95 * 100)}% CI on correlation: "
+                f"[{round(ci_lo, 3)}, {round(ci_hi, 3)}] (n={n})."
+            )
         return CausalAssessment(
             causal_claim_allowed=False,
             method="association_only",
             effect_size=round(corr, 4),
             refutation_passed=False,
-            disclaimer=(
-                "Correlation observed — not a verified causal claim (D-005). "
-                "Install DoWhy and accumulate ≥30 paired samples for causal estimation."
-            ),
+            disclaimer=disclaimer,
             sample_count=n,
+            correlation_ci_lower=round(ci_lo, 4),
+            correlation_ci_upper=round(ci_hi, 4),
         )
 
     import pandas as pd

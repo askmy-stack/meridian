@@ -2,7 +2,7 @@
 
 Meridian Phase B adds Qdrant RAG grounding, structured event classification, conformal SCRI intervals, and lightweight changepoint weak-signal detection — all without requiring Qdrant or Ollama for the demo path.
 
-**Prerequisite:** [Phase A — Real Data Foundation](REAL_DATA_PHASE_A.md)
+**Prerequisite:** [Phase A — Real Data Foundation](REAL_DATA_PHASE_A.md) · **Next:** [Phase C — Predictive & Causal Research](REAL_DATA_PHASE_C.md)
 
 ## Architecture
 
