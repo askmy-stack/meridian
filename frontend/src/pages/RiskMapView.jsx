@@ -1,15 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { Layers, Play } from 'lucide-react';
-import { fetchMapLayers, fetchSanctionsLayer, fetchWeatherLayer } from '../api/client';
+import { BookOpen, Layers, Play } from 'lucide-react';
+import {
+  fetchMapLayers,
+  fetchMetricsMethodology,
+  fetchSanctionsLayer,
+  fetchWeatherLayer,
+} from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { MapDetailPanel } from '../components/map/MapDetailPanel';
 import { useEntityDrawer } from '../context/EntityDrawerContext';
 import { LoadingState } from '../components/ui/LoadingState';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
 import { riskPillClass } from '../lib/risk';
+
+function kpiDefinition(methodology, id, fallback) {
+  return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
+}
 
 const LAYER_TOGGLES = [
   { key: 'zones', label: 'Conflict zones' },
@@ -65,6 +75,11 @@ export function RiskMapView() {
     staleTime: 300_000,
   });
 
+  const { data: methodology } = useQuery(['metrics-methodology'], fetchMetricsMethodology, {
+    staleTime: 10 * 60_000,
+    retry: 1,
+  });
+
   const layers = data?.layers ?? {};
   const extraLayers = {
     weather: toggles.weather ? weatherData : null,
@@ -94,13 +109,27 @@ export function RiskMapView() {
 
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-blue-400 mb-1">
-            Geopolitical Intelligence
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+              Geopolitical Intelligence
+            </p>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/25">
+              {methodology?.index_name ?? 'SCRI'} · 0–100
+            </span>
+          </div>
           <h1 className="page-title">Interactive World Map</h1>
           <p className="mt-2 text-slate-400 max-w-2xl">
             What is happening, where, why it matters, who is affected, and how disruption propagates through your network.
           </p>
+          <a
+            href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-400 hover:text-blue-300"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            SCRI methodology & references
+          </a>
         </div>
         <Link to="/simulate" className="btn-primary shrink-0">
           <Play className="h-4 w-4" />
@@ -186,7 +215,10 @@ export function RiskMapView() {
         ))}
       </div>
 
-      <Panel title="High-risk entities" subtitle="Click map markers for drill-down">
+      <Panel
+        title="High SCRI entities"
+        subtitle="XGBoost + SHAP supplier scores · click map markers for drill-down"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
           {(layers.entities?.features ?? layers.entities?.[entityType]?.features ?? [])
             .slice(0, 12)
@@ -199,11 +231,25 @@ export function RiskMapView() {
                 }
                 className="text-left p-3 rounded-xl border border-slate-700/50 bg-slate-900/30 hover:border-blue-500/40 transition-colors"
               >
-                <div className="flex justify-between gap-2">
+                <div className="flex justify-between gap-2 items-start">
                   <span className="font-medium text-white truncate text-sm">{f.properties.name}</span>
-                  <span className={`risk-pill text-[10px] ${riskPillClass(f.properties.risk_score)}`}>
-                    {Math.round((f.properties.risk_score ?? 0) * 100)}%
-                  </span>
+                  <div className="text-right shrink-0">
+                    <span className={`risk-pill text-[10px] ${riskPillClass(f.properties.risk_score)}`}>
+                      {Math.round((f.properties.risk_score ?? 0) * 100)}
+                    </span>
+                    <p className="text-[9px] text-slate-500 uppercase mt-0.5 inline-flex items-center justify-end">
+                      SCRI
+                      <MetricTooltip
+                        label="SCRI"
+                        definition={kpiDefinition(
+                          methodology,
+                          'peak_scri',
+                          'Supply Chain Risk Index — 0–100% supplier disruption exposure from XGBoost + SHAP.',
+                        )}
+                        reference="docs/METRICS.md"
+                      />
+                    </p>
+                  </div>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">{f.properties.country || f.properties.entity_type}</p>
               </button>

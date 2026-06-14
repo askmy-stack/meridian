@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from 'react-query';
 import {
+  BookOpen,
   Clock,
   GitCompare,
   Globe,
@@ -12,11 +13,21 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import { compareSimulationScenarios, fetchSimulationScenarios, runSimulationScenario } from '../api/client';
+import {
+  compareSimulationScenarios,
+  fetchMetricsMethodology,
+  fetchSimulationScenarios,
+  runSimulationScenario,
+} from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { LoadingState } from '../components/ui/LoadingState';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
+
+function kpiDefinition(methodology, id, fallback) {
+  return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
+}
 
 export function SimulationView() {
   const location = useLocation();
@@ -29,6 +40,11 @@ export function SimulationView() {
 
   const { data, isLoading } = useQuery(['simulation-scenarios'], fetchSimulationScenarios, {
     staleTime: 5 * 60_000,
+  });
+
+  const { data: methodology } = useQuery(['metrics-methodology'], fetchMetricsMethodology, {
+    staleTime: 10 * 60_000,
+    retry: 1,
   });
 
   const scenarios = data?.scenarios ?? [];
@@ -61,14 +77,28 @@ export function SimulationView() {
       <DemoBanner />
       <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-amber-400 mb-1">
-            Scenario Engine
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mb-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+              Scenario Engine
+            </p>
+            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">
+              BFS · Monte Carlo · SCRI context
+            </span>
+          </div>
           <h1 className="page-title">Disruption Simulator</h1>
           <p className="mt-2 text-slate-400 max-w-2xl">
             Trade disruptions, port closures, sanctions, conflicts, shortages — BFS propagation plus
             1,000-iteration Monte Carlo with map visualization.
           </p>
+          <a
+            href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md#simulation-metrics"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 mt-3 text-xs text-amber-400 hover:text-amber-300"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Simulation metrics methodology
+          </a>
         </div>
         <Link to="/map" className="btn-ghost shrink-0">
           <Globe className="h-4 w-4" />
@@ -83,7 +113,10 @@ export function SimulationView() {
         </p>
       )}
 
-      <Panel title="Compare scenarios" subtitle="Side-by-side impact metrics (Phase 4)">
+      <Panel
+        title="Compare scenarios"
+        subtitle="Graph-derived propagation · Monte Carlo tail risk per docs/METRICS.md"
+      >
         <div className="flex flex-col sm:flex-row gap-3 items-end">
           <label className="flex-1 text-sm text-slate-400">
             Scenario A
@@ -128,8 +161,14 @@ export function SimulationView() {
                 <p className="font-medium text-white">{c.name}</p>
                 <p className="text-xs text-slate-500 mt-1">{c.region}</p>
                 <p className="text-2xl font-bold text-white mt-2">{c.suppliers_affected} suppliers</p>
-                <p className="text-sm text-slate-400">
-                  P(disruption) {((c.monte_carlo?.disruption_probability ?? 0) * 100).toFixed(1)}%
+                <p className="text-sm text-slate-400 inline-flex items-center">
+                  Disruption probability{' '}
+                  {((c.monte_carlo?.disruption_probability ?? 0) * 100).toFixed(1)}%
+                  <MetricTooltip
+                    label="Disruption probability"
+                    definition="Share of Monte Carlo runs exceeding the disruption threshold (≥1,000 iterations)."
+                    reference="docs/METRICS.md#monte-carlo-financial-exposure"
+                  />
                 </p>
               </div>
             ))}
@@ -181,31 +220,64 @@ export function SimulationView() {
         <>
           <Panel
             title={`Impact: ${result.scenario?.name}`}
-            subtitle={result.impact_summary?.headline}
+            subtitle="BFS propagation + Monte Carlo · complements SCRI point scores"
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {[
-                { icon: Users, label: 'Suppliers hit', val: result.propagation?.suppliers_affected ?? 0 },
+                {
+                  icon: Users,
+                  label: 'Suppliers hit',
+                  val: result.propagation?.suppliers_affected ?? 0,
+                  tooltip: null,
+                },
                 {
                   icon: TrendingDown,
                   label: 'Revenue at risk',
                   val: `$${Number(result.propagation?.revenue_at_risk ?? 0).toLocaleString()}`,
+                  tooltip: (
+                    <MetricTooltip
+                      label="Revenue at risk"
+                      definition="Financial exposure from graph propagation — not a SCRI score."
+                      reference="docs/METRICS.md#propagation-impact"
+                    />
+                  ),
                 },
                 {
                   icon: ShieldAlert,
                   label: 'Disruption prob.',
                   val: `${((result.monte_carlo?.disruption_probability ?? 0) * 100).toFixed(1)}%`,
+                  tooltip: (
+                    <MetricTooltip
+                      label="Disruption probability"
+                      definition={kpiDefinition(
+                        methodology,
+                        'probability_disruption',
+                        'Share of Monte Carlo runs exceeding disruption threshold.',
+                      )}
+                      reference="docs/METRICS.md#monte-carlo-financial-exposure"
+                    />
+                  ),
                 },
                 {
                   icon: Clock,
                   label: 'Recovery est.',
                   val: `${result.propagation?.recovery_time_days ?? 0}d`,
+                  tooltip: (
+                    <MetricTooltip
+                      label="Expected delay"
+                      definition="Mean simulated delay across Monte Carlo iterations."
+                      reference="docs/METRICS.md#monte-carlo-financial-exposure"
+                    />
+                  ),
                 },
-              ].map(({ icon: Icon, label, val }) => (
+              ].map(({ icon: Icon, label, val, tooltip }) => (
                 <div key={label} className="stat-card text-center py-4">
                   <Icon className="h-5 w-5 text-blue-400 mx-auto mb-2" aria-hidden />
                   <p className="text-2xl font-bold text-white">{val}</p>
-                  <p className="text-xs text-slate-500 mt-1">{label}</p>
+                  <p className="text-xs text-slate-500 mt-1 inline-flex items-center justify-center gap-0.5">
+                    {label}
+                    {tooltip}
+                  </p>
                 </div>
               ))}
             </div>
@@ -213,11 +285,17 @@ export function SimulationView() {
               Monte Carlo: {result.monte_carlo?.iterations ?? 1000} iterations · Expected duration{' '}
               {result.monte_carlo?.expected_duration_days ?? 0} days · Timeline projection{' '}
               {result.map_overlay?.timeline_projection_days ?? 0} days to baseline recovery.
+              {result.impact_summary?.headline && (
+                <span className="block mt-2 text-slate-300">{result.impact_summary.headline}</span>
+              )}
             </p>
           </Panel>
 
           {result.map_overlay && (
-            <Panel title="Propagation on map" subtitle="Epicenter and affected suppliers">
+            <Panel
+              title="Propagation on map"
+              subtitle="BFS graph walk · epicenter and affected suppliers (SCRI scores on nodes)"
+            >
               <InteractiveWorldMap
                 layers={{}}
                 simulationOverlay={result.map_overlay}
@@ -227,7 +305,7 @@ export function SimulationView() {
           )}
 
           {result.mitigations?.length > 0 && (
-            <Panel title="Mitigation playbook" subtitle="Recommended actions">
+            <Panel title="Mitigation playbook" subtitle="Recommended actions — not LLM-generated SCRI scores">
               <ul className="space-y-2">
                 {result.mitigations.map((item) => (
                   <li

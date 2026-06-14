@@ -283,3 +283,33 @@
 
 [OWNER NOTES]
 -
+
+---
+## Session 6 — 2026-06-13
+**Duration:** ~45m
+**Phase:** Roadmap continue — map/sim SCRI polish, TGN CSV fallback
+
+### Built
+- RiskMapView + SimulationView SCRI labels, MetricTooltip, METRICS.md links (match Command Center / SuppliersView)
+- TGN forecaster CSV snapshot fallback when Neo4j unavailable (`data/snapshots/supplier_snapshot_*.csv`)
+- `tests/unit/test_tgn_csv_fallback.py` — 4 unit tests, no Neo4j
+
+### State at end
+- PR `feat/scri-map-sim-polish` ready for review (not merged)
+- Unit tests pass without Neo4j (60 passed)
+
+### Decisions made
+- CSV fallback uses latest snapshot by filename date stamp (same as `export_graph_snapshots.py`)
+- Simulation KPIs labeled per METRICS.md Monte Carlo / propagation sections (not vague risk %)
+
+### Blockers
+- Public deploy (Vercel + Railway) still deferred to next PR
+
+### Next session starts with
+1. Deploy frontend (Vercel) + API/Neo4j (Railway) per DEPLOY.md
+2. Record demo GIF per `docs/DEMO.md`
+3. Wire ACLED producer into `pipeline_refresh.py`
+4. MLflow-tracked XGBoost training run
+
+[OWNER NOTES]
+-

@@ -435,17 +435,17 @@ class LSTMTrendForecaster:
         Returns:
             TrendForecast with predictions and trend analysis
         """
-        if not TF_AVAILABLE or len(historical_scores) < self.sequence_length:
-            # Fallback to simple trend extrapolation
+        min_lstm_samples = self.sequence_length + self.forecast_horizon
+        if not TF_AVAILABLE or len(historical_scores) < min_lstm_samples:
+            # Need sequence_length + forecast_horizon to train; CSV/graph fallbacks often
+            # provide exactly sequence_length points — use linear extrapolation instead.
             return self._simple_forecast(
                 entity_id, entity_type, historical_scores, days, critical_threshold
             )
-        
-        # Ensure model is trained
-        if len(historical_scores) >= self.sequence_length + self.forecast_horizon:
-            self.fit(historical_scores)
-        
-        # Prepare last sequence
+
+        self.fit(historical_scores)
+
+        # Prepare last sequence (scaler fitted in fit() / _prepare_data)
         last_sequence = np.array(historical_scores[-self.sequence_length:])
         scaled_sequence = self._scaler.transform(last_sequence.reshape(-1, 1)).flatten()
         X = scaled_sequence.reshape(1, self.sequence_length, 1)
