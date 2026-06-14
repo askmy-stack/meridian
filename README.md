@@ -9,15 +9,6 @@
 
 > Every major supply chain disruption of the last 20 years was visible in open signals weeks before impact. Meridian connects GDELT, conflict, shipping, and weather data to **your** suppliers with honest calibration labels — band-first SCRI display, not false precision.
 
-<p align="center">
-  <a href="docs/DEMO.md">
-    <img src="docs/assets/meridian-demo.gif" alt="Meridian demo walkthrough" width="920"
-         onerror="this.onerror=null;this.src='docs/assets/meridian-hero.svg'" />
-  </a>
-  <br />
-  <sub>Record GIF: <code>bash scripts/record_demo.sh</code> · <a href="docs/DEMO.md">2-min demo script</a> · placeholder until recorded</sub>
-</p>
-
 **Repository:** [github.com/askmy-stack/meridian](https://github.com/askmy-stack/meridian)
 
 ---
