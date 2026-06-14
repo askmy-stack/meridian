@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from src.intelligence.disruption_labels import (
+    load_disruption_label_rows,
     load_disruption_labels,
     slugify_supplier_name,
 )
@@ -31,3 +32,16 @@ def test_load_disruption_labels_aggregates_positive() -> None:
     labels = load_disruption_labels(labels_path)
     # Rotterdam has both disrupted and stable rows — should aggregate to 1
     assert labels["rotterdam-components"] == 1
+
+
+def test_load_disruption_label_rows_v2_columns() -> None:
+    labels_path = Path(__file__).resolve().parents[2] / "data" / "disruption_labels.csv"
+    rows = load_disruption_label_rows(labels_path)
+    assert len(rows) >= 50
+    suez = next(r for r in rows if r.supplier_id == "ever-given-global-2021")
+    assert suez.disrupted_30d is True
+    assert suez.delay_days == 6
+    assert suez.volume_impact_pct == 12.0
+    # Rows without backfill remain optional
+    stable = next(r for r in rows if r.supplier_id == "seoul-precision-parts")
+    assert stable.delay_days is None

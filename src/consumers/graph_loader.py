@@ -116,7 +116,13 @@ class GraphLoaderConsumer:
         self.logger = logger.bind(consumer="GraphLoaderConsumer", group_id=group_id)
         self._consumer: Optional[KafkaConsumer] = None
         self.neo4j = get_neo4j_client()
-        self.stats = {"messages": 0, "loaded": 0, "skipped": 0, "errors": 0}
+        self.stats = {
+            "messages": 0,
+            "loaded": 0,
+            "skipped": 0,
+            "errors": 0,
+            "links_created": 0,
+        }
 
     def connect(self) -> None:
         if self._consumer is not None:
@@ -147,11 +153,53 @@ class GraphLoaderConsumer:
             rows = self.neo4j.execute_query(self.UPSERT_QUERY, props)
             if rows:
                 self.stats["loaded"] += 1
+                linked = self._link_event_to_suppliers(props)
+                self.stats["links_created"] += linked
                 return True
         except Exception as exc:
             self.logger.error("graph_load_failed", event_id=event.get("event_id"), error=str(exc))
             self.stats["errors"] += 1
         return False
+
+    def _link_event_to_suppliers(self, props: Dict[str, Any]) -> int:
+        """Link loaded event to suppliers via geospatial + country_match heuristics."""
+        from ..graph.affects_links import (
+            link_event_to_suppliers_by_country,
+            link_event_to_suppliers_by_geospatial,
+        )
+
+        event_id = props["id"]
+        linked = 0
+        try:
+            linked += link_event_to_suppliers_by_geospatial(self.neo4j, event_id)
+            linked += link_event_to_suppliers_by_country(
+                self.neo4j, event_id, props.get("country")
+            )
+        except Exception as exc:
+            self.logger.warning("event_supplier_link_failed", event_id=event_id, error=str(exc))
+        return linked
+
+    def _flush_event_signal_history(self) -> None:
+        """Persist batch ingest metadata to TimescaleDB when configured."""
+        loaded = self.stats.get("loaded", 0)
+        if loaded == 0:
+            return
+        try:
+            from ..storage.timescale_writer import EventSignalRecord, get_timescale_writer
+
+            writer = get_timescale_writer()
+            writer.write_event_batch_sync(
+                [
+                    EventSignalRecord(
+                        source="graph_loader",
+                        linked_supplier_count=int(self.stats.get("links_created", 0)),
+                        event_id=None,
+                        severity=None,
+                    )
+                ]
+            )
+        except Exception as exc:
+            self.logger.warning("event_signal_history_skipped", error=str(exc))
 
     def run(self, max_messages: Optional[int] = None) -> Dict[str, int]:
         """Poll Kafka and load events until idle or max_messages reached."""
@@ -182,6 +230,7 @@ class GraphLoaderConsumer:
                         break
 
         self.close()
+        self._flush_event_signal_history()
         return self.stats.copy()
 
     def close(self) -> None:

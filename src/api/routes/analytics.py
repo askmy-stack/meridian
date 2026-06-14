@@ -149,6 +149,14 @@ async def graph_health_report() -> dict:
         RETURN count(r) AS tier2_link_count
         """
     )
+    link_confidence = client.execute_query(
+        """
+        MATCH ()-[r:AFFECTS]->()
+        WHERE r.confidence IS NOT NULL
+        RETURN avg(r.confidence) AS avg_link_confidence,
+               count(r) AS affects_with_confidence
+        """
+    )
     row = checks[0] if checks else {}
     suppliers = int(row.get("suppliers") or 0)
     missing_geo = int(row.get("suppliers_missing_geo") or 0)
@@ -156,6 +164,9 @@ async def graph_health_report() -> dict:
     event_count = int(events[0].get("event_count", 0) if events else 0)
     with_events = int(linked[0].get("suppliers_with_events", 0) if linked else 0)
     tier2_count = int(tier_edges[0].get("tier2_link_count", 0) if tier_edges else 0)
+    conf_row = link_confidence[0] if link_confidence else {}
+    avg_link_confidence = round(float(conf_row.get("avg_link_confidence") or 0.0), 3)
+    affects_with_confidence = int(conf_row.get("affects_with_confidence") or 0)
 
     geo_score = 1.0 - (missing_geo / suppliers) if suppliers else 0.0
     event_score = with_events / suppliers if suppliers else 0.0
@@ -174,6 +185,9 @@ async def graph_health_report() -> dict:
         "suppliers_with_events": with_events,
         "events": event_count,
         "tier2_link_count": tier2_count,
+        "avg_link_confidence": avg_link_confidence,
+        "affects_with_confidence": affects_with_confidence,
+        "link_methods": ["geospatial", "country_match", "demo_seed", "manual"],
         "completeness_score": completeness_score,
         "status": "healthy" if suppliers > 0 else "empty",
     }

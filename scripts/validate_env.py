@@ -52,6 +52,7 @@ OPTIONAL_VARS: List[EnvVar] = [
     EnvVar("SLACK_WEBHOOK_URL", False, "Slack alerting webhook"),
     EnvVar("CORS_ALLOWED_ORIGINS", False, "Comma-separated CORS allowlist"),
     EnvVar("MLFLOW_TRACKING_URI", False, "MLflow tracking server URI"),
+    EnvVar("TIMESCALE_URL", False, "TimescaleDB DSN for score/event history"),
 ]
 
 

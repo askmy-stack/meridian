@@ -55,12 +55,15 @@ def test_graph_health_report(mock_neo4j: MagicMock) -> None:
         [{"event_count": 8}],
         [{"suppliers_with_events": 12}],
         [{"tier2_link_count": 6}],
+        [{"avg_link_confidence": 0.72, "affects_with_confidence": 15}],
     ]
     response = client.get("/analytics/graph/health")
     assert response.status_code == 200
     body = response.json()
     assert body["suppliers"] == 30
     assert body["tier2_link_count"] == 6
+    assert body["avg_link_confidence"] == 0.72
+    assert body["affects_with_confidence"] == 15
     assert 0.0 <= body["completeness_score"] <= 1.0
     assert body["status"] == "healthy"
 

@@ -57,6 +57,8 @@ Maps 24 critique flaws to remediation chunks. **Chunk 1 (this PR)** covers P0/P1
 
 - `data/disruption_labels.csv` expanded to 50+ public case-study rows
 - `make portfolio-ready`, `fetch-wgi`, `seed-erp`, `pipeline-batch`, `check-deploy`
+
+**Phase A (real data):** [docs/REAL_DATA_PHASE_A.md](REAL_DATA_PHASE_A.md) — TimescaleDB history, link confidence, batch rescore.
 - README portfolio polish + updated `docs/DEMO.md` (GraphHealth, pillars, batch path)
 - `scripts/record_demo.sh`, `scripts/check_deploy_config.sh`
 - `frontend/.env.example` + `VITE_API_URL` alias in API client

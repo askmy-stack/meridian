@@ -260,8 +260,17 @@ class EntityResolutionConsumer:
         MATCH (s:Supplier {id: $supplier_id})
         
         MERGE (e)-[r:AFFECTS]->(s)
-        ON CREATE SET r.confidence = $confidence, r.resolved_at = datetime()
-        ON MATCH SET r.confidence = $confidence, r.updated_at = datetime()
+        ON CREATE SET
+            r.link_method = 'manual',
+            r.confidence = $confidence,
+            r.linked_at = datetime()
+        ON MATCH SET
+            r.link_method = coalesce(r.link_method, 'manual'),
+            r.confidence = CASE
+                WHEN r.confidence IS NULL OR $confidence > r.confidence THEN $confidence
+                ELSE r.confidence
+            END,
+            r.linked_at = coalesce(r.linked_at, datetime())
         
         RETURN count(r) as created
         """

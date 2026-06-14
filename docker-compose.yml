@@ -106,6 +106,7 @@ services:
       POSTGRES_DB: ${TIMESCALE_DB:-meridian_timeseries}
     volumes:
       - timescale_data:/var/lib/postgresql/data
+      - ./scripts/init_timescale.sql:/docker-entrypoint-initdb.d/01_init_timescale.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U meridian"]
       interval: 10s

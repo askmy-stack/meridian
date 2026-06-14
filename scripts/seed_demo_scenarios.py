@@ -135,7 +135,14 @@ def main() -> None:
         WITH e
         MATCH (s:Supplier {name: $supplier_name})
         MERGE (e)-[r:AFFECTS]->(s)
-        ON CREATE SET r.confidence = 0.85, r.resolved_at = datetime()
+        ON CREATE SET
+            r.link_method = 'demo_seed',
+            r.confidence = 0.85,
+            r.linked_at = datetime()
+        ON MATCH SET
+            r.link_method = coalesce(r.link_method, 'demo_seed'),
+            r.confidence = coalesce(r.confidence, 0.85),
+            r.linked_at = coalesce(r.linked_at, datetime())
         SET s.risk_score = CASE
             WHEN s.risk_score < $severity THEN $severity
             ELSE s.risk_score

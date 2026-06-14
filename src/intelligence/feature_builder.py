@@ -204,7 +204,13 @@ def build_supplier_features(
     sanctions = _sanctions_exposure(country_iso)
     conflict_proximity = max(conflict_proximity, sanctions * 0.6)
 
-    stability, _stability_source = political_stability_for_country(country_iso)
+    stability, stability_source = political_stability_for_country(country_iso)
+    logger.debug(
+        "wgi_provenance",
+        supplier_id=supplier_id,
+        country_iso=country_iso,
+        source=stability_source,
+    )
 
     return FeatureVector(
         conflict_proximity_score=conflict_proximity,

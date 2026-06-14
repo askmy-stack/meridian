@@ -481,3 +481,40 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 12 — 2026-06-14
+**Duration:** ~2h
+**Phase:** Phase A — Real data foundation
+
+### Built
+- **TimescaleDB:** `scripts/init_timescale.sql`, hypertables `supplier_score_history` + `event_signal_history`, `src/storage/timescale_writer.py`
+- **Hooks:** `score_suppliers.py` + `graph_loader.py` append history; graceful skip when TimescaleDB down
+- **Link confidence:** `:AFFECTS` edges get `link_method`, `confidence`, `linked_at` (geospatial, country_match, demo_seed, manual)
+- **Rescore:** `scripts/rescore_on_events.py`, `make rescore-recent`
+- **Labels v2:** optional `delay_days`, `volume_impact_pct` on `disruption_labels.csv` + `load_disruption_label_rows()`
+- **WGI:** provenance logging on every feature build; cache-hit unit test
+- **Docs:** `docs/REAL_DATA_PHASE_A.md`; graph health `avg_link_confidence`
+- PR #14 `feat/phase-a-real-data`
+
+### State at end
+- Unit tests pass without Neo4j or TimescaleDB
+- TimescaleDB init runs on fresh `docker compose up` volume
+- Label corpus still ~83 rows — 500-row target documented for Phase B
+
+### Decisions made
+- TimescaleDB optional (TIMESCALE_URL) — demo never hard-depends on it
+- Batch rescore via script; Kafka trigger deferred to Phase B
+- Fuzzy NER links use `link_method=manual`
+
+### Blockers
+- None for merge
+
+### Next session starts with
+1. Phase B: Kafka rescore consumer + risk timeline API
+2. Expand labels toward 500 rows with verified impact fields
+3. Merge PR #13 then #14
+
+[OWNER NOTES]
+-
