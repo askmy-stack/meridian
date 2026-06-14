@@ -2,13 +2,26 @@
 
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List, Tuple
 
 from .dowhy_engine import CausalAssessment, assess_event_supplier_link
 
+DEFAULT_CAUSAL_PAIR_LIMIT = 100
 
-def fetch_event_supplier_pairs(client: Any, *, limit: int = 30) -> Tuple[List[float], List[float]]:
+
+def causal_pair_limit() -> int:
+    """Return max Event→Supplier pairs to fetch for causal assessment."""
+    return int(os.getenv("CAUSAL_PAIR_LIMIT", str(DEFAULT_CAUSAL_PAIR_LIMIT)))
+
+
+def fetch_event_supplier_pairs(
+    client: Any,
+    *,
+    limit: int | None = None,
+) -> Tuple[List[float], List[float]]:
     """Load paired event severity and supplier SCRI from the graph."""
+    pair_limit = limit if limit is not None else causal_pair_limit()
     rows = client.execute_query(
         """
         MATCH (e:Event)-[:AFFECTS]->(s:Supplier)
@@ -17,7 +30,7 @@ def fetch_event_supplier_pairs(client: Any, *, limit: int = 30) -> Tuple[List[fl
         ORDER BY e.ingested_at DESC
         LIMIT $limit
         """,
-        {"limit": limit},
+        {"limit": pair_limit},
     )
     severities = [float(row["severity"]) for row in rows]
     risks = [float(row["risk_score"]) for row in rows]
@@ -52,4 +65,5 @@ def causal_fields_for_alert(assessment: CausalAssessment) -> Dict[str, Any]:
         "causal_method": assessment.method,
         "causal_effect_size": assessment.effect_size,
         "causal_disclaimer": assessment.disclaimer,
+        "causal_sample_count": assessment.sample_count,
     }

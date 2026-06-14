@@ -28,6 +28,7 @@ class CausalAssessment:
     effect_size: Optional[float]
     refutation_passed: bool
     disclaimer: str
+    sample_count: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -36,6 +37,7 @@ class CausalAssessment:
             "effect_size": self.effect_size,
             "refutation_passed": self.refutation_passed,
             "disclaimer": self.disclaimer,
+            "sample_count": self.sample_count,
         }
 
 
@@ -54,6 +56,7 @@ def assess_event_supplier_link(
             effect_size=None,
             refutation_passed=False,
             disclaimer="Not enough paired observations for causal or correlational inference.",
+            sample_count=n,
         )
 
     if not DOWHY_AVAILABLE or n < min_samples:
@@ -67,6 +70,7 @@ def assess_event_supplier_link(
                 "Correlation observed — not a verified causal claim (D-005). "
                 "Install DoWhy and accumulate ≥30 paired samples for causal estimation."
             ),
+            sample_count=n,
         )
 
     import pandas as pd
@@ -108,6 +112,7 @@ def assess_event_supplier_link(
             disclaimer=(
                 "Causal estimate via DoWhy backdoor adjustment with random common cause refutation."
             ),
+            sample_count=n,
         )
     except Exception as exc:
         logger.warning("dowhy_assessment_failed", error=str(exc))
@@ -117,4 +122,5 @@ def assess_event_supplier_link(
             effect_size=None,
             refutation_passed=False,
             disclaimer=f"Causal pipeline error: {exc}",
+            sample_count=n,
         )

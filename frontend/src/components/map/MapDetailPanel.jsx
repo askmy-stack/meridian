@@ -1,5 +1,6 @@
 import { AlertTriangle, Globe, Info, MapPin, Ship, Users } from 'lucide-react';
-import { riskPillClass } from '../../lib/risk';
+import { MetricTooltip } from '../ui/MetricTooltip';
+import { riskColor, riskLabel, riskPillClass } from '../../lib/risk';
 
 /**
  * Side panel for map drill-down — explains what / where / why / who / impact.
@@ -16,6 +17,7 @@ export function MapDetailPanel({ feature, onClose }) {
 
   const isZone = feature.layer?.includes('conflict') || feature.category;
   const isEvent = feature.event_type;
+  const score = feature.risk_score;
 
   return (
     <div className="glass-panel p-5 h-full overflow-y-auto space-y-4" role="region" aria-label="Map detail">
@@ -23,12 +25,30 @@ export function MapDetailPanel({ feature, onClose }) {
         <h3 className="font-semibold text-white text-lg leading-tight">
           {feature.name || feature.title || feature.id}
         </h3>
-        {feature.risk_score != null && (
-          <span className={`risk-pill shrink-0 ${riskPillClass(feature.risk_score)}`}>
-            {Math.round(feature.risk_score * 100)}%
-          </span>
-        )}
       </div>
+
+      {typeof score === 'number' && (
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-400 inline-flex items-center">
+              SCRI
+              <MetricTooltip
+                label="SCRI"
+                definition="Supply Chain Risk Index — 0–100% probability-style exposure score from XGBoost + SHAP."
+                reference="docs/METRICS.md"
+              />
+            </span>
+            <span className={`risk-pill text-xs shrink-0 ${riskPillClass(score)}`}>{riskLabel(score)}</span>
+          </div>
+          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full"
+              style={{ width: `${score * 100}%`, backgroundColor: riskColor(score) }}
+            />
+          </div>
+          <p className="text-2xl font-bold text-white mt-2">{Math.round(score * 100)}%</p>
+        </div>
+      )}
 
       {feature.summary && (
         <p className="text-sm text-slate-400">{feature.summary}</p>
@@ -79,6 +99,14 @@ export function MapDetailPanel({ feature, onClose }) {
           {isEvent && 'Active signal linked to your supplier graph — elevated risk may appear in digest and alerts within 24h.'}
           {!isZone && !isEvent && 'Node in your knowledge graph — trace dependencies in Supply Graph or run a simulation.'}
         </p>
+        {typeof score === 'number' && (
+          <p className="mt-2 text-blue-200/70">
+            SCRI methodology:{' '}
+            <a href="/docs/METRICS.md" className="underline hover:text-blue-100">
+              docs/METRICS.md
+            </a>
+          </p>
+        )}
       </div>
 
       {onClose && (

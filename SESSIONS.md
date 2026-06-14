@@ -295,7 +295,7 @@
 - `tests/unit/test_tgn_csv_fallback.py` — 4 unit tests, no Neo4j
 
 ### State at end
-- PR `feat/scri-map-sim-polish` ready for review (not merged)
+- PR #7 `feat/scri-map-sim-polish` **MERGED** to `main`
 - Unit tests pass without Neo4j (60 passed)
 
 ### Decisions made
@@ -303,13 +303,41 @@
 - Simulation KPIs labeled per METRICS.md Monte Carlo / propagation sections (not vague risk %)
 
 ### Blockers
-- Public deploy (Vercel + Railway) still deferred to next PR
+- Public deploy (Vercel + Railway) still deferred
+
+[OWNER NOTES]
+-
+
+---
+## Session 7 — 2026-06-13
+**Duration:** ~45m
+**Phase:** Demo polish + research track documentation
+
+### Built
+- **MapDetailPanel:** SCRI labels, MetricTooltip, progress bar, METRICS.md link (parity with EntityDrawer / SuppliersView)
+- **Research docs:** `docs/TGN_RESEARCH.md`, `docs/CAUSAL_SCOPE.md` (D-005 thresholds, association vs DoWhy)
+- **`scripts/prepare_tgn_training.py`:** snapshot manifest (`tgn_manifest.json`), readiness gate (≥7 snapshots)
+- **DoWhy at scale:** `CAUSAL_PAIR_LIMIT` env (default 100), `causal_sample_count` on alert payloads
+- **DEPLOY.md:** Portfolio demo section (Railway + Vercel) before ECS production path
+- PR `feat/demo-polish-research` targeting `main`
+
+### State at end
+- `make seed-all` includes `seed-routes` (unchanged, verified)
+- Unit tests pass without Neo4j
+- TGN full training still research-only; manifest script unblocks daily snapshot discipline
+
+### Decisions made
+- Portfolio deploy path documented as Railway + Vercel; ECS remains production-scale track
+- Causal pair fetch default raised to 100 (configurable) per `docs/CAUSAL_SCOPE.md`
+
+### Blockers
+- Public URL not yet live — follow DEPLOY.md Railway + Vercel steps
+- Demo GIF still placeholder
 
 ### Next session starts with
-1. Deploy frontend (Vercel) + API/Neo4j (Railway) per DEPLOY.md
+1. Execute Railway + Vercel deploy per DEPLOY.md
 2. Record demo GIF per `docs/DEMO.md`
-3. Wire ACLED producer into `pipeline_refresh.py`
-4. MLflow-tracked XGBoost training run
+3. Cron `export_graph_snapshots.py` until `tgn_manifest.json` reports ready
 
 [OWNER NOTES]
 -
