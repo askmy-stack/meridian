@@ -97,6 +97,10 @@ Loader: `load_disruption_label_rows()` in `src/intelligence/disruption_labels.py
 3. Full label corpus (500 rows) + retrain with impact-weighted features
 4. TimescaleDB-backed risk timeline API for frontend sparklines
 
+## Phase C pointer
+
+See [Phase B — Intelligence Layer](REAL_DATA_PHASE_B.md) for Qdrant RAG, event classifier, conformal intervals, and weak-signal changepoint detection.
+
 ## Local verification
 
 ```bash

@@ -1,0 +1,4 @@
+# Optional dev dependencies — install for full RAG embeddings
+# pip install -r requirements-dev.txt
+
+sentence-transformers>=2.2.0

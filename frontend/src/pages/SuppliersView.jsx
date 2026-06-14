@@ -113,7 +113,15 @@ export function SuppliersView() {
                     {riskLabel(explanationQuery.data.risk_score)}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    {formatRiskPercent(explanationQuery.data.risk_score)}% modelled index · {calLabel}
+                    {formatRiskPercent(explanationQuery.data.risk_score)}% modelled index
+                    {explanationQuery.data.score_interval && (
+                      <span className="text-slate-400">
+                        {' '}
+                        [{Math.round(explanationQuery.data.score_interval.lower * 100)}–
+                        {Math.round(explanationQuery.data.score_interval.upper * 100)}%]
+                      </span>
+                    )}{' '}
+                    · {calLabel}
                   </p>
                 </div>
                 <RiskPill

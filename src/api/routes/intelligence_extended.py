@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import re
 from datetime import datetime
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional
 
 import structlog
 from fastapi import APIRouter, HTTPException
@@ -13,24 +12,11 @@ from pydantic import BaseModel, Field
 from ...geopolitical.noaa_alerts import weather_alerts_geojson
 from ...geopolitical.sanctions_stub import sanctions_geojson
 from ...graph import get_neo4j_client
+from ...rag.copilot_service import COPILOT_DISCLAIMER, answer_copilot
 
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/intelligence", tags=["Intelligence"])
-
-COPILOT_DISCLAIMER = (
-    "Template copilot — answers use Neo4j graph facts and keyword routing only. "
-    "Not a general LLM. Unverified questions receive an explicit uncertainty response."
-)
-
-SCENARIO_KEYWORDS = {
-    "red-sea-bab-el-mandeb": ("red sea", "houthi", "bab"),
-    "taiwan-strait-tension": ("taiwan", "semiconductor", "chip"),
-    "suez-canal-blockage": ("suez", "canal"),
-    "russia-ukraine-supply": ("ukraine", "russia"),
-    "us-iran-hormuz": ("hormuz", "iran"),
-    "china-us-trade": ("china", "tariff", "export control"),
-}
 
 BACKTEST_SCENARIOS = {
     "suez-2021": {
@@ -60,6 +46,13 @@ BACKTEST_SCENARIOS = {
 }
 
 
+class CitationModel(BaseModel):
+    source: str
+    text: str
+    collection: str
+    score: Optional[float] = None
+
+
 class CopilotRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=500)
 
@@ -71,6 +64,7 @@ class CopilotResponse(BaseModel):
     grounded: bool = True
     disclaimer: str = COPILOT_DISCLAIMER
     graph_facts: List[str] = Field(default_factory=list)
+    citations: List[CitationModel] = Field(default_factory=list)
     generated_at: str
 
 
@@ -111,84 +105,21 @@ async def historical_backtest(scenario_id: str) -> dict:
     }
 
 
-def _graph_context(client: Any) -> Tuple[List[str], List[str], List[str]]:
-    """Return high-risk supplier names, graph facts, and fact strings for grounding."""
-    suppliers = client.execute_query(
-        """
-        MATCH (s:Supplier)
-        WHERE s.risk_score >= 0.7
-        RETURN s.name AS name, s.risk_score AS risk
-        ORDER BY s.risk_score DESC
-        LIMIT 5
-        """
-    )
-    stats = client.execute_query(
-        """
-        OPTIONAL MATCH (s:Supplier) WITH count(s) AS suppliers
-        OPTIONAL MATCH (e:Event) WITH suppliers, count(e) AS events
-        OPTIONAL MATCH (s2:Supplier)<-[:AFFECTS]-(:Event) WITH suppliers, events,
-             count(DISTINCT s2) AS affected
-        RETURN suppliers, events, affected
-        """
-    )
-    row = stats[0] if stats else {}
-    names = [r["name"] for r in suppliers]
-    facts = [
-        f"{row.get('suppliers', 0)} suppliers in graph",
-        f"{row.get('events', 0)} events materialized",
-        f"{row.get('affected', 0)} suppliers linked to events",
-    ]
-    return names, facts, facts
-
-
-def _match_scenario(question: str) -> Optional[str]:
-    q = question.lower()
-    for scenario_id, keywords in SCENARIO_KEYWORDS.items():
-        if any(word in q for word in keywords):
-            return scenario_id
-    return None
-
-
 @router.post("/copilot", response_model=CopilotResponse)
 async def risk_copilot(body: CopilotRequest) -> CopilotResponse:
-    """Graph-grounded template copilot — no unconstrained LLM generation."""
+    """RAG-grounded copilot — retrieves Qdrant corpus + Neo4j facts (D-006)."""
+    result = answer_copilot(body.question)
+    payload = result.to_dict()
+    return CopilotResponse(**payload)
+
+
+@router.get("/suppliers/{supplier_id}/weak-signals")
+async def supplier_weak_signals(supplier_id: str) -> dict:
+    """CUSUM changepoint + weak-signal detector for a supplier."""
+    from ...intelligence.changepoint import get_supplier_weak_signals
+
     client = get_neo4j_client()
-    names, graph_facts, _ = _graph_context(client)
-    scenario_id = _match_scenario(body.question)
-
-    if scenario_id:
-        answer = (
-            f"Based on graph data ({', '.join(graph_facts)}), I recommend the "
-            f"{scenario_id.replace('-', ' ')} simulator preset. "
-            f"Top exposed suppliers: {', '.join(names) if names else 'none seeded'}."
-        )
-        grounded = True
-    elif names:
-        answer = (
-            "I don't have a matching scenario preset for that question. "
-            f"Graph facts: {', '.join(graph_facts)}. "
-            f"Current high-risk suppliers: {', '.join(names)}. "
-            "Try Red Sea, Taiwan semiconductors, Suez, or Ukraine supply shocks."
-        )
-        grounded = False
-    else:
-        answer = (
-            "I don't know — the graph has no seeded suppliers yet. "
-            "Run make seed-all, then ask about a supported scenario keyword."
-        )
-        grounded = False
-
-    answer = re.sub(r"\*\*", "", answer)
-
-    return CopilotResponse(
-        answer=answer,
-        suggested_scenario_id=scenario_id,
-        related_suppliers=names,
-        grounded=grounded,
-        disclaimer=COPILOT_DISCLAIMER,
-        graph_facts=graph_facts,
-        generated_at=datetime.now().isoformat(),
-    )
+    return get_supplier_weak_signals(client, supplier_id)
 
 
 @router.get("/forecast/{supplier_id}")
