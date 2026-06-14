@@ -155,6 +155,30 @@ export async function fetchGraphHealth() {
   return data;
 }
 
+export async function fetchBacktestSummary() {
+  const { data } = await apiClient.get('/analytics/backtest-summary');
+  return data;
+}
+
+export async function fetchRegimeSummary(days = 30) {
+  const { data } = await apiClient.get('/analytics/regime-summary', { params: { days } });
+  return data;
+}
+
+export async function fetchRegionRegime(regionId, days = 30) {
+  const { data } = await apiClient.get(`/intelligence/regions/${regionId}/regime`, {
+    params: { days },
+  });
+  return data;
+}
+
+export async function fetchSupplierAlternatives(supplierId, limit = 5) {
+  const { data } = await apiClient.get(`/suppliers/${supplierId}/alternatives`, {
+    params: { limit },
+  });
+  return data;
+}
+
 export function getDigestExportUrl() {
   const base =
     import.meta.env.VITE_API_BASE_URL ||

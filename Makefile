@@ -1,5 +1,6 @@
 .PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo \
-	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy rescore-recent
+	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy rescore-recent \
+	train-tgn backtest-scri collect-causal-pairs
 
 PY ?= python3
 PIP ?= pip
@@ -106,6 +107,18 @@ index-rag:  ## Index Neo4j events + METRICS.md + suppliers into Qdrant
 
 export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
 	$(PY) scripts/export_graph_snapshots.py
+
+prepare-tgn:  ## Build TGN training manifest from snapshots
+	$(PY) scripts/prepare_tgn_training.py
+
+train-tgn:  ## Train TGN v1 GRU checkpoint (requires ≥7 snapshots)
+	$(PY) scripts/train_tgn_v1.py
+
+backtest-scri:  ## Replay snapshots vs disruption labels → data/backtest/latest.json
+	$(PY) scripts/backtest_scri.py
+
+collect-causal-pairs:  ## Export Event→Supplier pairs for offline DoWhy analysis
+	$(PY) scripts/collect_causal_pairs.py
 
 fetch-wgi:  ## Fetch World Bank WGI stability scores → data/wgi_stability.json
 	$(PY) scripts/fetch_wgi_stability.py

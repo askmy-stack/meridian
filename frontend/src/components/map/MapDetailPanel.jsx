@@ -1,7 +1,15 @@
 import { AlertTriangle, Globe, Info, MapPin, Ship, Users } from 'lucide-react';
+import { useQuery } from 'react-query';
+import { fetchRegionRegime } from '../../api/client';
 import { MetricTooltip } from '../ui/MetricTooltip';
 import { RiskBar, RiskPill } from '../ui/RiskDisplay';
 import { formatRiskPercent } from '../../lib/risk';
+
+const REGIME_STYLES = {
+  stable: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+  escalation: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+  crisis: 'bg-red-500/20 text-red-300 border-red-500/30',
+};
 
 /**
  * Side panel for map drill-down — explains what / where / why / who / impact.
@@ -19,13 +27,31 @@ export function MapDetailPanel({ feature, onClose }) {
   const isZone = feature.layer?.includes('conflict') || feature.category;
   const isEvent = feature.event_type;
   const score = feature.risk_score;
+  const zoneId = feature.id;
+
+  const regimeQuery = useQuery(
+    ['region-regime', zoneId],
+    () => fetchRegionRegime(zoneId),
+    { enabled: Boolean(isZone && zoneId), staleTime: 120_000 },
+  );
+  const regime = regimeQuery.data;
 
   return (
     <div className="glass-panel p-5 h-full overflow-y-auto space-y-4" role="region" aria-label="Map detail">
-      <div className="flex justify-between gap-2">
+      <div className="flex justify-between gap-2 items-start">
         <h3 className="font-semibold text-white text-lg leading-tight">
           {feature.name || feature.title || feature.id}
         </h3>
+        {regime?.regime && (
+          <span
+            className={`shrink-0 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${
+              REGIME_STYLES[regime.regime] ?? REGIME_STYLES.stable
+            }`}
+            title={regime.disclaimer}
+          >
+            {regime.regime}
+          </span>
+        )}
       </div>
 
       {typeof score === 'number' && (

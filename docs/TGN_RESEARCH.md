@@ -1,6 +1,6 @@
 # TGN Research Track — Temporal Graph Networks for Supply Chain Risk
 
-> **Status:** Research / MVP stub · **Decision:** [D-004](../DECISIONS.md)
+> **Status:** Research / v1 GRU trained on snapshots · **Decision:** [D-004](../DECISIONS.md)
 
 ## Why TGN for supply chain risk
 
@@ -17,19 +17,19 @@ Meridian’s portfolio thesis: **TGN + DoWhy + SHAP** is a combination no produc
 | Layer | Implementation | Notes |
 |-------|----------------|-------|
 | Point risk (SCRI) | XGBoost + SHAP | Production path for alerts and map |
-| Trajectory (7/14/30d) | `TGNForecaster` stub | Falls back to LSTM in `weak_signal_detector` |
+| Trajectory (7/14/30d) | `TGNForecaster` v1 GRU | Falls back to LSTM when no checkpoint |
 | History without Neo4j | CSV snapshot fallback | `data/snapshots/supplier_snapshot_YYYYMMDD.csv` |
-| Training | Not run | `TGNForecaster.train()` logs requirements and returns `False` |
+| Training v1 | `scripts/train_tgn_v1.py` | PyTorch GRU on score sequences (CPU-friendly) |
 
-**API:** `GET /intelligence/suppliers/{id}/forecast` returns `model: "lstm_fallback"` until a trained TGN checkpoint exists.
+**API:** `GET /intelligence/forecast/{id}` returns `model: "tgn"` when `models/tgn_v1.pt` exists, else `lstm_fallback`.
 
 **Daily snapshots:** `scripts/export_graph_snapshots.py` exports supplier rows (risk_score, event counts, max severity) for offline training prep.
 
-**Readiness check:** `scripts/prepare_tgn_training.py` scans snapshots and writes `data/snapshots/tgn_manifest.json` (`ready_for_training: true` when ≥7 daily files exist).
+**Readiness check:** `scripts/prepare_tgn_training.py` scans snapshots, writes `data/snapshots/tgn_manifest.json` (`ready_for_training: true` when ≥7 daily files exist), and includes optional Neo4j edge counts.
 
-## Path to full training
+## v1 training steps (GRU research track)
 
-### 1. Collect temporal data (30+ days recommended)
+### 1. Collect snapshots (≥7 days minimum, 30+ recommended)
 
 ```bash
 # Daily cron or post-pipeline hook
@@ -37,16 +37,31 @@ python scripts/export_graph_snapshots.py
 python scripts/prepare_tgn_training.py
 ```
 
-Target: **30+ daily snapshots**, 100+ suppliers per snapshot, 1000+ labeled event outcomes (see `TGNForecaster._log_training_requirements()`).
+Manifest fields: `snapshot_count`, `graph_edges.affects_edges`, `ready_for_training`.
 
-### 2. Prepare dataset
+### 2. Train GRU v1
 
-- Extend `prepare_tgn_training.py` (future) to emit PyG Temporal `TemporalData` objects: nodes, edges, timestamps, labels.
-- Align snapshot dates with Kafka event timelines and Neo4j `:Event` resolution outcomes.
+```bash
+make train-tgn
+# or: python scripts/train_tgn_v1.py
+```
 
-### 3. Train with PyTorch Geometric Temporal
+- Builds `(seq_len=7 → next score)` pairs per supplier from ordered snapshots
+- Trains tiny GRU (PyTorch) or Ridge fallback (sklearn) on CPU
+- Saves checkpoint to `models/tgn_v1.pt` (gitignored)
+- Logs metrics to MLflow experiment `tgn_v1_research`; tags `research_stub` when insufficient data
 
-Dependencies (not in MVP `requirements.txt`):
+### 3. Wire inference
+
+`TGNForecaster` auto-loads `TGN_MODEL_PATH` (default `models/tgn_v1.pt`) at init. No code changes needed after training.
+
+```bash
+curl "localhost:8002/intelligence/forecast/taiwan-semiconductor-corp?horizon_days=14"
+```
+
+### 4. Path to full PyG Temporal TGN
+
+Dependencies (not in MVP `requirements.txt` — see `requirements-dev.txt` / cloud GPU):
 
 ```
 torch>=2.1
@@ -54,38 +69,41 @@ torch_geometric>=2.4
 torch_geometric_temporal>=0.54
 ```
 
-Training sketch (stub — not wired in CI):
+Full training sketch:
 
-1. Load snapshot sequence from manifest.
-2. Build TGN (2–3 layers, link prediction + node classification).
-3. Train on held-out **time** split (last 7 days validation).
-4. Log to MLflow; export weights to `models/tgn/`.
-5. Set `TGNForecaster(model_path=...)` in API.
+1. Extend manifest → PyG `TemporalData` (nodes, edges, timestamps, labels).
+2. Train TGN (2–3 layers, link prediction + node classification).
+3. Held-out **time** split (last 7 days validation).
+4. Export weights; set `TGN_MODEL_PATH`.
 
-### 4. Hardware (local dev per AGENTS.md)
+## Hardware (local dev per AGENTS.md)
 
 | Resource | Meridian dev machine | Full TGN training |
 |----------|----------------------|-------------------|
 | GPU | NVIDIA Quadro P2000 **4GB VRAM** | Minimum **8GB VRAM** recommended for TGN |
 | RAM | 48GB | 32GB+ |
-| Training time | N/A (stub) | 2–3 days GPU for production-quality model |
+| v1 GRU training | CPU, seconds–minutes | N/A |
+| Full TGN | N/A (stub path) | 2–3 days GPU |
 
-**Practical path on P2000:** use snapshots + smaller subgraph batches, gradient checkpointing, or cloud GPU (HF Jobs / single A10) for the actual training run; keep inference on CPU or small GPU.
+**Practical path on P2000:** v1 GRU for portfolio demo; cloud GPU (HF Jobs / A10) for full TGN; keep inference on CPU.
 
 ## Related files
 
 | File | Role |
 |------|------|
-| `src/forecasting/tgn_forecaster.py` | Stub + LSTM + CSV fallback |
+| `src/forecasting/tgn_forecaster.py` | GRU v1 load + LSTM + CSV fallback |
 | `scripts/export_graph_snapshots.py` | Daily Neo4j → CSV export |
-| `scripts/prepare_tgn_training.py` | Manifest + readiness gate |
-| `docs/METRICS.md#forecasting-tgn--research-track` | User-facing metric definitions |
-| `tests/unit/test_tgn_csv_fallback.py` | CSV fallback tests (no Neo4j) |
+| `scripts/prepare_tgn_training.py` | Manifest + edge counts + readiness gate |
+| `scripts/train_tgn_v1.py` | GRU v1 training + MLflow |
+| `docs/REAL_DATA_PHASE_C.md` | Phase C architecture |
+| `tests/unit/test_tgn_csv_fallback.py` | CSV fallback tests |
+| `tests/unit/test_train_tgn_v1.py` | Synthetic training path |
 
 ## Success criteria (research track)
 
-- [ ] ≥30 daily snapshots in `data/snapshots/`
-- [ ] `tgn_manifest.json` reports `ready_for_training: true`
-- [ ] MLflow run with validation AUC / MAE on 7-day horizon
-- [ ] API returns `model: "tgn"` for at least demo suppliers
-- [ ] Forecast explanations include graph attention weights (not LSTM trend only)
+- [x] ≥7 daily snapshots → `ready_for_training: true`
+- [x] MLflow run or `research_stub` tag when data insufficient
+- [x] API returns `model: "tgn"` when checkpoint loaded
+- [ ] ≥30 daily snapshots for production-quality GRU
+- [ ] Full PyG TGN with graph attention explanations
+- [ ] Validation MAE on 7-day horizon logged to MLflow

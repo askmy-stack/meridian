@@ -646,6 +646,39 @@ def _risk_to_category(risk: float) -> str:
 
 
 @app.get(
+    "/suppliers/{supplier_id}/alternatives",
+    response_model=dict,
+    tags=["Suppliers"],
+)
+async def get_supplier_alternatives(
+    supplier_id: str,
+    limit: int = Query(default=5, ge=1, le=20),
+):
+    """Alternative suppliers ranked by graph embedding similarity + inverse risk."""
+    from ..intelligence.graph_embeddings import rank_alternative_suppliers
+
+    try:
+        alternatives = rank_alternative_suppliers(supplier_id, limit=limit)
+        return {
+            "supplier_id": supplier_id,
+            "alternatives": alternatives,
+            "count": len(alternatives),
+            "method": "node2vec_stub",
+            "generated_at": datetime.now().isoformat(),
+        }
+    except Exception as exc:
+        logger.warning("alternatives_failed", supplier_id=supplier_id, error=str(exc))
+        return {
+            "supplier_id": supplier_id,
+            "alternatives": [],
+            "count": 0,
+            "method": "unavailable",
+            "message": "Neo4j unavailable — no alternatives computed",
+            "generated_at": datetime.now().isoformat(),
+        }
+
+
+@app.get(
     "/suppliers/{supplier_id}/explanation",
     response_model=dict,
     tags=["Suppliers"]

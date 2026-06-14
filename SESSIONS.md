@@ -556,3 +556,39 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 14 — 2026-06-14
+**Duration:** ~4h
+**Phase:** Phase C — Predictive & causal research layer
+
+### Built
+- **TGN v1:** `scripts/train_tgn_v1.py` (GRU on snapshot sequences), extended `prepare_tgn_training.py` with graph edge counts, `TGNForecaster` checkpoint loading
+- **HMM regime:** `src/intelligence/hmm_regime.py` — 3-state regional stress; APIs `/intelligence/regions/{id}/regime`, `/analytics/regime-summary`; map regime badge
+- **DoWhy scale:** bootstrap correlation CI when n&lt;30; `scripts/collect_causal_pairs.py`; `make collect-causal-pairs`
+- **Alternatives:** `src/intelligence/graph_embeddings.py` Node2Vec stub; `GET /suppliers/{id}/alternatives`; EntityDrawer section
+- **Backtest:** `scripts/backtest_scri.py` → `data/backtest/latest.json`; `GET /analytics/backtest-summary`; GraphHealthView KPI card
+- **Docs:** `docs/REAL_DATA_PHASE_C.md`, updated `TGN_RESEARCH.md`, `CAUSAL_SCOPE.md`
+- PR #16 `feat/phase-c-predictive`
+
+### State at end
+- Unit tests pass without Neo4j, GPU, or trained checkpoint
+- `hmmlearn` added to `requirements.txt` (lightweight)
+- Frontend build passes with regime badge + alternatives + backtest card
+
+### Decisions made
+- v1 TGN = CPU GRU on snapshot sequences (no torch_geometric for v1)
+- HMM synthetic fallback when Neo4j event rates empty
+- Graph embeddings = deterministic hash walk stub until Node2Vec wired
+
+### Blockers
+- None for merge
+
+### Next session starts with
+1. Merge PR #15 then #16
+2. Daily snapshot cron + first real `train-tgn` run after 7 days data
+3. Expand disruption labels toward 500 rows
+
+[OWNER NOTES]
+-

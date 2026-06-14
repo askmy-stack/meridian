@@ -56,17 +56,52 @@ def discover_snapshots(directory: Path) -> List[SnapshotInfo]:
     return snapshots
 
 
+def fetch_graph_edge_counts() -> Dict[str, Any]:
+    """Optional Neo4j edge counts for training manifest (graceful when unavailable)."""
+    try:
+        from src.graph import get_neo4j_client
+
+        client = get_neo4j_client()
+        rows = client.execute_query(
+            """
+            OPTIONAL MATCH ()-[a:AFFECTS]->() WITH count(a) AS affects_edges
+            OPTIONAL MATCH ()-[s:SUPPLIES]->() WITH affects_edges, count(s) AS supplies_edges
+            OPTIONAL MATCH (sup:Supplier) WITH affects_edges, supplies_edges, count(sup) AS suppliers
+            RETURN affects_edges, supplies_edges, suppliers
+            """
+        )
+        row = rows[0] if rows else {}
+        return {
+            "affects_edges": int(row.get("affects_edges") or 0),
+            "supplies_edges": int(row.get("supplies_edges") or 0),
+            "supplier_nodes": int(row.get("suppliers") or 0),
+            "source": "neo4j",
+        }
+    except Exception as exc:
+        logger.warning("graph_edge_counts_unavailable", error=str(exc))
+        return {
+            "affects_edges": 0,
+            "supplies_edges": 0,
+            "supplier_nodes": 0,
+            "source": "unavailable",
+        }
+
+
 def build_manifest(
     snapshots: List[SnapshotInfo],
     *,
     min_ready: int = MIN_SNAPSHOTS_FOR_READY,
+    graph_edges: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build manifest JSON describing snapshot coverage and training readiness."""
     dates = [item.date_stamp for item in snapshots]
+    edge_info = graph_edges if graph_edges is not None else fetch_graph_edge_counts()
+    total_rows = sum(item.row_count for item in snapshots)
     return {
         "generated_at": datetime.utcnow().isoformat() + "Z",
         "snapshot_dir": str(snapshot_dir()),
         "snapshot_count": len(snapshots),
+        "total_supplier_rows": total_rows,
         "date_range": {
             "earliest": dates[0] if dates else None,
             "latest": dates[-1] if dates else None,
@@ -79,12 +114,14 @@ def build_manifest(
             }
             for item in snapshots
         ],
+        "graph_edges": edge_info,
         "min_snapshots_for_ready": min_ready,
         "ready_for_training": len(snapshots) >= min_ready,
+        "training_command": "python scripts/train_tgn_v1.py",
         "next_steps": [
             "Run scripts/export_graph_snapshots.py daily (cron or pipeline)",
             "Re-run this script until ready_for_training is true",
-            "Train TGN stub via PyTorch Geometric Temporal (see docs/TGN_RESEARCH.md)",
+            "Train TGN v1 GRU: python scripts/train_tgn_v1.py (see docs/TGN_RESEARCH.md)",
         ],
     }
 

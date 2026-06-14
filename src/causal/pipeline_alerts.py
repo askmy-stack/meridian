@@ -60,10 +60,15 @@ def format_alert_causal_summary(assessment: CausalAssessment) -> str:
 
 def causal_fields_for_alert(assessment: CausalAssessment) -> Dict[str, Any]:
     """Wire-format causal metadata attached to Alert payloads."""
-    return {
+    fields = {
         "causal_claim_allowed": assessment.causal_claim_allowed,
         "causal_method": assessment.method,
         "causal_effect_size": assessment.effect_size,
         "causal_disclaimer": assessment.disclaimer,
         "causal_sample_count": assessment.sample_count,
     }
+    if assessment.correlation_ci_lower is not None:
+        fields["causal_correlation_ci_lower"] = assessment.correlation_ci_lower
+    if assessment.correlation_ci_upper is not None:
+        fields["causal_correlation_ci_upper"] = assessment.correlation_ci_upper
+    return fields

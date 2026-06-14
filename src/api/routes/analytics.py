@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
 from datetime import datetime
+from pathlib import Path
 from typing import List
 
 import structlog
@@ -14,6 +17,8 @@ from ...graph import get_neo4j_client
 logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/analytics", tags=["Analytics"])
+
+BACKTEST_JSON = Path(os.getenv("BACKTEST_OUTPUT", "data/backtest/latest.json"))
 
 SECTOR_KEYWORDS = {
     "semiconductors": ["semiconductor", "electronics", "chip", "taiwan"],
@@ -191,3 +196,28 @@ async def graph_health_report() -> dict:
         "completeness_score": completeness_score,
         "status": "healthy" if suppliers > 0 else "empty",
     }
+
+
+@router.get("/regime-summary")
+async def regime_summary(days: int = 30) -> dict:
+    """Regional stress regimes across reference conflict zones (HMM)."""
+    from ...intelligence.hmm_regime import regime_summary_all_regions
+
+    return regime_summary_all_regions(days=days)
+
+
+@router.get("/backtest-summary")
+async def backtest_summary() -> dict:
+    """Latest SCRI backtest metrics from scripts/backtest_scri.py output."""
+    if not BACKTEST_JSON.is_file():
+        return {
+            "status": "not_run",
+            "message": "Run: python scripts/backtest_scri.py",
+            "path": str(BACKTEST_JSON),
+        }
+    try:
+        payload = json.loads(BACKTEST_JSON.read_text(encoding="utf-8"))
+        payload["source_file"] = str(BACKTEST_JSON)
+        return payload
+    except (OSError, json.JSONDecodeError) as exc:
+        raise HTTPException(status_code=500, detail=f"Invalid backtest JSON: {exc}") from exc
