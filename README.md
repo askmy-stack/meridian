@@ -168,14 +168,6 @@ Good first issues: [labels/good first issue](https://github.com/askmy-stack/meri
 
 ---
 
-## Author
-
-**Abhinaysai Kamineni** — MS Data Science, George Washington University  
-
-[GitHub](https://github.com/askmy-stack) · [LinkedIn](https://linkedin.com/in/abhinaysai-kamineni)
-
----
-
 ## License
 
 [Apache 2.0](LICENSE) — use it, fork it, build on it.
