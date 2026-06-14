@@ -700,9 +700,13 @@ async def get_supplier_risk_explanation(supplier_id: str):
                     country_iso=supplier.country_iso,
                     neo4j_client=client,
                 )
-                return {
+                from ..intelligence.conformal import compute_score_interval
+
+                risk_score = current_risk.get("risk_score")
+                interval = compute_score_interval(risk_score) if risk_score is not None else None
+                payload = {
                     "supplier_id": supplier_id,
-                    "risk_score": current_risk.get("risk_score"),
+                    "risk_score": risk_score,
                     "risk_category": current_risk.get("risk_category"),
                     "pillar_scores": pillar_scores,
                     "explanations": explanations,
@@ -710,6 +714,9 @@ async def get_supplier_risk_explanation(supplier_id: str):
                     "model_version": result.get("model_versions", {}).get("risk_scorer"),
                     "generated_at": datetime.now().isoformat(),
                 }
+                if interval:
+                    payload["score_interval"] = interval.to_dict()
+                return payload
         except ImportError:
             logger.info("risk_explanation_demo_mode", supplier_id=supplier_id)
 
@@ -776,7 +783,14 @@ async def get_supplier_risk_explanation(supplier_id: str):
             neo4j_client=client,
         )
 
-        return {
+        from ..intelligence.conformal import compute_score_interval
+
+        interval = (
+            compute_score_interval(supplier.risk_score)
+            if supplier.risk_score is not None
+            else None
+        )
+        payload = {
             "supplier_id": supplier_id,
             "risk_score": supplier.risk_score,
             "risk_category": _risk_to_category(supplier.risk_score),
@@ -791,6 +805,9 @@ async def get_supplier_risk_explanation(supplier_id: str):
             "model_version": "demo-heuristic-v1",
             "generated_at": datetime.now().isoformat(),
         }
+        if interval:
+            payload["score_interval"] = interval.to_dict()
+        return payload
         
     except HTTPException:
         raise

@@ -81,7 +81,9 @@ def test_sanctions_layer() -> None:
 
 
 def test_copilot_maps_red_sea() -> None:
-    with patch("src.api.routes.intelligence_extended.get_neo4j_client") as mock_get:
+    with patch("src.rag.copilot_service.get_neo4j_client") as mock_get, patch(
+        "src.rag.copilot_service.search_all", return_value=[]
+    ):
         mock_get.return_value.execute_query.side_effect = [
             [{"name": "Fab A", "risk": 0.9}],
             [{"suppliers": 10, "events": 4, "affected": 3}],

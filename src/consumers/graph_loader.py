@@ -142,8 +142,32 @@ class GraphLoaderConsumer:
             self.logger.error("kafka_connection_failed", error=str(exc))
             raise
 
+    def _maybe_classify_event(self, event: Dict[str, Any]) -> None:
+        """Optional LLM/rule classifier — structured JSON only, no risk scoring."""
+        if os.getenv("ENABLE_LLM_CLASSIFIER", "false").lower() not in ("1", "true", "yes"):
+            return
+        text = event.get("description") or event.get("notes") or ""
+        if len(text) < 10:
+            return
+        try:
+            from ..intelligence.event_classifier import classify_news_event
+
+            result = classify_news_event(text)
+            event["classification"] = result.to_dict()
+            if result.event_type and not event.get("event_type"):
+                event["event_type"] = result.event_type
+            self.logger.debug(
+                "event_classified",
+                event_id=event.get("event_id"),
+                event_type=result.event_type,
+                classifier=result.classifier,
+            )
+        except Exception as exc:
+            self.logger.warning("event_classification_skipped", error=str(exc))
+
     def load_event(self, event: Dict[str, Any]) -> bool:
         """Upsert a single Kafka event into Neo4j."""
+        self._maybe_classify_event(event)
         props = kafka_event_to_graph_props(event)
         if not props:
             self.stats["skipped"] += 1

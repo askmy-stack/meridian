@@ -43,10 +43,11 @@ export function CopilotView() {
         </p>
         <h1 className="page-title">Intelligence Copilot</h1>
         <p className="mt-2 text-slate-400 max-w-2xl">
-          Graph-grounded template responses only — keyword routing to simulator presets and Neo4j facts.
+          RAG-grounded responses — retrieves Qdrant corpus + Neo4j facts. Numeric SCRI never from LLM.
         </p>
         <p className="mt-3 text-xs text-amber-200/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 max-w-2xl">
-          Disclaimer: Not a general LLM. Answers cite graph-backed facts or say &quot;I don&apos;t know&quot; when unmatched.
+          Disclaimer: Answers cite retrieved documents and graph facts. Risk scores come from XGBoost only.
+          Unmatched questions receive an explicit uncertainty response.
         </p>
       </header>
 
@@ -97,6 +98,23 @@ export function CopilotView() {
               <p className="text-sm text-slate-200 leading-relaxed">{copilotMutation.data.answer}</p>
               {copilotMutation.data.disclaimer && (
                 <p className="text-xs text-slate-500 mt-2">{copilotMutation.data.disclaimer}</p>
+              )}
+              {copilotMutation.data.citations?.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-slate-700/50">
+                  <p className="text-xs font-medium text-slate-400 mb-2">Citations</p>
+                  <ul className="space-y-1.5">
+                    {copilotMutation.data.citations.map((c, i) => (
+                      <li key={`${c.source}-${i}`} className="text-xs text-slate-500">
+                        <span className="text-cyan-400/80">[{c.collection?.replace('meridian_', '')}]</span>{' '}
+                        {c.text?.slice(0, 120)}
+                        {c.text?.length > 120 ? '…' : ''}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {copilotMutation.data.grounded === false && (
+                <p className="text-xs text-amber-400/80 mt-2">Low confidence — limited grounding context</p>
               )}
               {copilotMutation.data.graph_facts?.length > 0 && (
                 <p className="text-xs text-slate-500 mt-1">

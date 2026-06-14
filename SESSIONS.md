@@ -518,3 +518,41 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 13 — 2026-06-14
+**Duration:** ~3h
+**Phase:** Phase B — Intelligence layer
+
+### Built
+- **Qdrant RAG:** `src/rag/` (qdrant_client, embedder hash/MiniLM fallback, collections, copilot_service)
+- **Index script:** `scripts/index_rag_corpus.py`, `make index-rag`
+- **Grounded copilot:** RAG retrieval + citations[], `LLM_PROVIDER=stub|ollama|openai`, D-006 risk-score refusal
+- **Event classifier:** `src/intelligence/event_classifier.py` — structured JSON, optional graph_loader hook
+- **Conformal SCRI:** `src/intelligence/conformal.py` → `score_interval` on supplier explanation API
+- **Changepoint:** `src/intelligence/changepoint.py` CUSUM + `/intelligence/suppliers/{id}/weak-signals`
+- **Frontend:** CopilotView citations + disclaimer; SuppliersView interval band
+- **Docs:** `docs/REAL_DATA_PHASE_B.md`; link from Phase A
+- PR #15 `feat/phase-b-rag-intelligence`
+
+### State at end
+- Unit tests pass without Qdrant, Ollama, or Neo4j
+- Demo works with hash embedder and stub LLM
+- sentence-transformers optional via `requirements-dev.txt`
+
+### Decisions made
+- Hash embedder default for CI; MiniLM opt-in
+- Conformal calibration from disruption_labels.csv holdout
+- ENABLE_LLM_CLASSIFIER=false by default
+
+### Blockers
+- None
+
+### Next session starts with
+1. Phase C: Kafka rescore consumer + risk timeline API
+2. Expand labels toward 500 rows
+3. Merge PR #14 then #15
+
+[OWNER NOTES]
+-

@@ -101,6 +101,9 @@ score-suppliers:  ## Score all suppliers and write risk_score to Neo4j
 rescore-recent:  ## Rescore suppliers with new :AFFECTS links (RESCORE_LOOKBACK_HOURS=24)
 	$(PY) scripts/rescore_on_events.py
 
+index-rag:  ## Index Neo4j events + METRICS.md + suppliers into Qdrant
+	$(PY) scripts/index_rag_corpus.py
+
 export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
 	$(PY) scripts/export_graph_snapshots.py
 
