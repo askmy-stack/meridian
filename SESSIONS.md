@@ -376,3 +376,73 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 9 — 2026-06-14
+**Duration:** ~2h
+**Phase:** SCRI honesty — Chunk 2 (data + deploy prep)
+
+### Built
+- **Labeled dataset:** `data/disruption_labels.csv` (~30 rows) + `disruption_labels.py` loader
+- **Training:** `train_risk_model.py` prefers labels file; writes `models/training_metadata.json`
+- **Calibration:** `model_status.py` sets `calibration_status: validated` when model + labels metadata
+- **ERP prototype:** `scripts/ingest_erp_csv.py`, `data/sample_erp_tiers.csv`, `docs/ERP_INGEST.md`
+- **Graph health:** tier-2 count + `completeness_score` on `/analytics/graph/health`
+- **Live WGI:** `scripts/fetch_wgi_stability.py`, `data/wgi_stability.json`, feature_builder cache loader
+- **Deploy prep:** `frontend/vercel.json`, `railway.toml`, `docs/DEPLOY_QUICKSTART.md`
+- **Demo assets:** `docs/assets/demo-placeholder.md`, updated `docs/DEMO.md` (honesty banner script)
+- PR #10 `feat/flaw-fixes-chunk2`
+
+### State at end
+- Unit tests + frontend build pass without Neo4j
+- Chunk 3 (multi-index SCRI, copilot grounding, graph dashboard) next
+
+### Decisions made
+- WGI cache ships with static fallback; `fetch_wgi_stability.py` upgrades to live World Bank API
+- ERP ingest uses `SUPPLIES` edges with tier property — not full ERP connector
+
+### Blockers
+- None for Chunk 2 merge
+
+### Next session starts with
+1. Chunk 3: multi-index SCRI stubs + SuppliersView pillar bars
+2. Copilot grounding + GraphHealthView dashboard
+3. Kafka batch-mode doc + `pipeline_batch.py`
+
+[OWNER NOTES]
+-
+
+---
+
+## Session 10 — 2026-06-14
+**Duration:** ~2h
+**Phase:** SCRI honesty — Chunk 3 (architecture + UX completion)
+
+### Built
+- **Batch demo path:** `docs/ARCHITECTURE_DEMO.md`, `scripts/pipeline_batch.py`
+- **Multi-index SCRI:** `pillar_scores` on explanation API + SuppliersView pillar mini-bars
+- **Feature layers:** NOAA weather + OpenSanctions stub in `feature_builder` + provenance
+- **Copilot grounding:** graph facts, disclaimer banner, uncertainty fallback
+- **GraphHealthView:** `/ops/graph-health` dashboard (geo, events, tier-2, model status)
+- **Digest honesty:** `narrative_type: template` + Dashboard label
+- PR #11 `feat/flaw-fixes-chunk3`
+
+### State at end
+- 24/24 flaws addressed (3 partial: live AIS, deploy execution, demo GIF recording)
+- Unit tests + frontend build pass without Neo4j
+
+### Decisions made
+- Pillar scores are weighted feature sums — not separate ML models
+- Batch pipeline reuses seed/score scripts — no Kafka shortcut into graph_loader
+
+### Blockers
+- None for Chunk 3 merge
+
+### Next session starts with
+1. Merge PRs #9–#11 (chunk1 → chunk2 → chunk3)
+2. Optional: live deploy per DEPLOY_QUICKSTART.md
+3. Record demo GIF
+
+[OWNER NOTES]
+-

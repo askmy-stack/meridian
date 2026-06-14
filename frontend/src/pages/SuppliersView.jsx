@@ -136,6 +136,27 @@ export function SuppliersView() {
                   Data quality: {explanationQuery.data.feature_provenance.summary} — see docs/LIMITATIONS.md
                 </p>
               )}
+              {explanationQuery.data.pillar_scores && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {Object.entries(explanationQuery.data.pillar_scores).map(([pillar, score]) => (
+                    <div
+                      key={pillar}
+                      className="rounded-lg border border-slate-700/60 bg-slate-900/40 px-3 py-2"
+                    >
+                      <p className="text-[10px] uppercase tracking-wider text-slate-500">{pillar}</p>
+                      <p className="text-lg font-semibold text-white tabular-nums">
+                        {Math.round(score * 100)}%
+                      </p>
+                      <div className="risk-bar mt-1.5 h-1">
+                        <div
+                          className="risk-bar-fill bg-gradient-to-r from-cyan-500 to-blue-500"
+                          style={{ width: `${Math.round(score * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="space-y-3">
                 {(explanationQuery.data.explanations ?? []).map((item) => (
                   <div key={item.feature} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">

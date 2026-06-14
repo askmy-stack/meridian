@@ -53,11 +53,15 @@ def test_graph_health_report(mock_neo4j: MagicMock) -> None:
         [{"suppliers": 30, "suppliers_missing_geo": 2}],
         [{"suppliers_without_ports": 5}],
         [{"event_count": 8}],
+        [{"suppliers_with_events": 12}],
+        [{"tier2_link_count": 6}],
     ]
     response = client.get("/analytics/graph/health")
     assert response.status_code == 200
     body = response.json()
     assert body["suppliers"] == 30
+    assert body["tier2_link_count"] == 6
+    assert 0.0 <= body["completeness_score"] <= 1.0
     assert body["status"] == "healthy"
 
 
@@ -75,7 +79,10 @@ def test_sanctions_layer() -> None:
 
 def test_copilot_maps_red_sea() -> None:
     with patch("src.api.routes.intelligence_extended.get_neo4j_client") as mock_get:
-        mock_get.return_value.execute_query.return_value = [{"name": "Fab A"}]
+        mock_get.return_value.execute_query.side_effect = [
+            [{"name": "Fab A", "risk": 0.9}],
+            [{"suppliers": 10, "events": 4, "affected": 3}],
+        ]
         response = client.post(
             "/intelligence/copilot",
             json={"question": "What if Red Sea shipping is attacked?"},
@@ -83,6 +90,8 @@ def test_copilot_maps_red_sea() -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["suggested_scenario_id"] == "red-sea-bab-el-mandeb"
+    assert body["grounded"] is True
+    assert body["disclaimer"]
 
 
 def test_simulation_compare_requires_two_ids() -> None:

@@ -1,6 +1,7 @@
-# Demo walkthrough (2–3 minutes)
+# Demo walkthrough (~2 minutes)
 
 Use this script for Loom recordings, recruiter calls, and README GIF capture.
+Align narration with **SCRI honesty banners** (ModelStatusBanner, band-first RiskPill, feature provenance).
 
 ## Prerequisites
 
@@ -17,12 +18,13 @@ Open **http://localhost:5173**
 
 ---
 
-## Scene 1 — Command Center (30s)
+## Scene 1 — Honest Command Center (30s)
 
 1. Land on **Command Center** (`/`)
-2. Point out KPI cards: suppliers tracked, critical risks, active events
-3. Click **Export digest** — markdown executive brief downloads
-4. Mention: scores come from Neo4j graph + XGBoost (SHAP on supplier drill-down)
+2. Point out **ModelStatusBanner** — demo vs validated calibration label
+3. KPI cards: suppliers tracked, critical risks, active events (band-first tooltips)
+4. Click **Export digest** — markdown executive brief downloads
+5. Mention: SCRI is a **modelled index** with band-first display — not actuarial probability until labeled retrain
 
 ---
 
@@ -33,21 +35,21 @@ Open **http://localhost:5173**
 3. Click **Run scenario**
 4. Highlight:
    - Suppliers affected (BFS propagation)
-   - Disruption probability (1,000-iteration Monte Carlo)
+   - **p10 / p50 / p90** delay bands (Monte Carlo — not point estimates)
    - Mitigation playbook bullets
 5. Scroll to **Propagation on map** — epicenter + affected suppliers
 
-Optional: use **Compare scenarios** — Red Sea vs Suez side-by-side.
+Optional: **Compare scenarios** — Red Sea vs Suez side-by-side.
 
 ---
 
-## Scene 3 — World map (45s)
+## Scene 3 — World map + provenance (45s)
 
 1. Open **Risk Map** (`/map`)
 2. Toggle layers: conflict zones, trade routes, active events
 3. Enable **Weather (NOAA)** and **Sanctions** supplemental layers
-4. Click a high-risk supplier marker → **Entity drawer** opens
-5. Click **View on map** / navigate from **Alerts** via **View on map** deep link
+4. Click a high-risk supplier marker → **Entity drawer**
+5. Note **feature provenance** line (live vs static features)
 
 ---
 
@@ -55,8 +57,8 @@ Optional: use **Compare scenarios** — Red Sea vs Suez side-by-side.
 
 1. **Copilot** (`/copilot`) — ask: *"What happens if Red Sea shipping is disrupted?"*
 2. Click through to suggested simulator preset
-3. **Sectors** (`/sectors`) — semiconductor / shipping exposure aggregates
-4. **Timeline** (`/timeline`) — drag 7–90 day window slider
+3. **Sectors** (`/sectors`) — keyword classification tooltip (not ML taxonomy)
+4. **Suppliers** — SHAP explanation with calibration sublabel
 
 ---
 
@@ -69,13 +71,12 @@ make pipeline-refresh
 ```
 
 Explain: GDELT → Kafka → Neo4j graph loader → entity resolution → Slack-ready alerts.
-
-Verify in Kafka UI: http://localhost:8081
+For portfolio demos without Kafka, see `docs/ARCHITECTURE_DEMO.md` (batch mode).
 
 ---
 
 ## Recording tips
 
-- Resolution: 1920×1080, dark IDE/browser theme matches UI
-- Save GIF to `docs/assets/meridian-demo.gif` (≤15 MB, ~15 fps)
-- Narration hook: *"Every major disruption was visible in signals weeks early — Meridian connects them to your suppliers in real time."*
+- Resolution: 1920×1080, dark browser theme matches UI
+- Save GIF per `docs/assets/demo-placeholder.md` → `docs/assets/meridian-demo.gif`
+- Narration hook: *"Every major disruption was visible in signals weeks early — Meridian connects them to your suppliers with honest calibration labels."*

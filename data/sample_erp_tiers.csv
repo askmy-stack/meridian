@@ -1,0 +1,11 @@
+parent_supplier_id,child_supplier_id,tier,notes
+detroit-motors-supply,acme-electronics-ltd,2,Auto OEM → tier-2 electronics
+detroit-motors-supply,shanghai-manufacturing-co,2,Auto OEM → tier-2 assembly
+taiwan-semiconductor-corp,acme-electronics-ltd,2,Fab → downstream packaging
+taiwan-semiconductor-corp,seoul-precision-parts,2,Chip supply → precision parts
+rotterdam-components,hamburg-industrial-gmbh,2,EU distribution hub
+singapore-precision-pte,ho-chi-minh-assembly,2,ASEAN contract manufacturing
+singapore-precision-pte,bangkok-components,2,ASEAN components
+dubai-logistics-hub,istanbul-manufacturing,2,Gulf logistics → Turkey mfg
+acme-electronics-ltd,shenzhen-sub-tier-demo,3,Electronics tier-3 stub (creates node)
+shanghai-manufacturing-co,mumbai-chemicals-ltd,3,Chemicals tier-3 link

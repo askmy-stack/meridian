@@ -88,6 +88,29 @@ Correlational signals (event severity ↔ supplier score) are labeled **associat
 
 ---
 
+## Multi-index SCRI decomposition (API stub)
+
+`/suppliers/{id}/explanation` returns `pillar_scores` — **weighted sums of existing feature groups**, not separate ML models:
+
+| Pillar | Features combined |
+|--------|-------------------|
+| `geographic` | `conflict_proximity_score`, inverse `political_stability_index` |
+| `operational` | `port_congestion_score`, `weather_risk_score` (NOAA demo match) |
+| `network` | `single_source_flag`, `dependency_depth` |
+| `event_load` | `recent_events_count`, `critical_events_count` |
+
+UI shows four mini-bars under the main SCRI on **Suppliers** view. Values are 0–1 (displayed as 0–100%).
+
+Sanctions exposure feeds `conflict_proximity_score` via OpenSanctions demo stub; provenance field `sanctions_exposure` documents the source.
+
+---
+
+## Weekly digest narrative
+
+`POST /intelligence/weekly-digest` sets `narrative_type: "template"`. The narrative is rule-generated — not LLM-verified.
+
+---
+
 ## Data freshness KPIs
 
 | Dashboard label | Source | Definition |

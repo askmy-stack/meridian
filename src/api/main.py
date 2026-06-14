@@ -669,7 +669,17 @@ async def get_supplier_risk_explanation(supplier_id: str):
         # Prefer full ML stack when XGBoost/SHAP are installed; otherwise demo factors.
         try:
             from ..intelligence import get_supplier_risk
-            from ..intelligence.feature_builder import build_feature_provenance
+            from ..intelligence.feature_builder import build_feature_provenance, compute_pillar_scores
+            from ..intelligence.feature_builder import build_supplier_features
+
+            features = build_supplier_features(
+                supplier_id,
+                single_source_flag=supplier.single_source_flag or False,
+                critical_flag=getattr(supplier, "critical_flag", False) or False,
+                country_iso=supplier.country_iso,
+                neo4j_client=client,
+            )
+            pillar_scores = compute_pillar_scores(features)
 
             result = get_supplier_risk(supplier_id)
             if "error" not in result:
@@ -694,6 +704,7 @@ async def get_supplier_risk_explanation(supplier_id: str):
                     "supplier_id": supplier_id,
                     "risk_score": current_risk.get("risk_score"),
                     "risk_category": current_risk.get("risk_category"),
+                    "pillar_scores": pillar_scores,
                     "explanations": explanations,
                     "feature_provenance": provenance,
                     "model_version": result.get("model_versions", {}).get("risk_scorer"),
@@ -702,7 +713,20 @@ async def get_supplier_risk_explanation(supplier_id: str):
         except ImportError:
             logger.info("risk_explanation_demo_mode", supplier_id=supplier_id)
 
-        from ..intelligence.feature_builder import build_feature_provenance
+        from ..intelligence.feature_builder import (
+            build_feature_provenance,
+            build_supplier_features,
+            compute_pillar_scores,
+        )
+
+        features = build_supplier_features(
+            supplier_id,
+            single_source_flag=supplier.single_source_flag or False,
+            critical_flag=getattr(supplier, "critical_flag", False) or False,
+            country_iso=supplier.country_iso,
+            neo4j_client=client,
+        )
+        pillar_scores = compute_pillar_scores(features)
 
         event_rows = client.execute_query(
             """
@@ -756,6 +780,7 @@ async def get_supplier_risk_explanation(supplier_id: str):
             "supplier_id": supplier_id,
             "risk_score": supplier.risk_score,
             "risk_category": _risk_to_category(supplier.risk_score),
+            "pillar_scores": pillar_scores,
             "explanations": explanations or [{
                 "feature": "baseline",
                 "description": "Stable supplier profile — no major active signals",
@@ -838,7 +863,8 @@ async def generate_weekly_digest():
                 for s in risky_suppliers[:5]
             ] if risky_suppliers else [],
             "recommendations": _generate_digest_recommendations(risky_suppliers),
-            "narrative": _generate_narrative(events, risky_suppliers, alert_stats)
+            "narrative": _generate_narrative(events, risky_suppliers, alert_stats),
+            "narrative_type": "template",
         }
         
         logger.info("weekly_digest_generated")
