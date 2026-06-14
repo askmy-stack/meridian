@@ -1,5 +1,5 @@
 .PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo \
-	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy
+	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy rescore-recent
 
 PY ?= python3
 PIP ?= pip
@@ -97,6 +97,9 @@ train-risk:  ## Train XGBoost risk model with MLflow tracking
 
 score-suppliers:  ## Score all suppliers and write risk_score to Neo4j
 	$(PY) scripts/score_suppliers.py
+
+rescore-recent:  ## Rescore suppliers with new :AFFECTS links (RESCORE_LOOKBACK_HOURS=24)
+	$(PY) scripts/rescore_on_events.py
 
 export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
 	$(PY) scripts/export_graph_snapshots.py

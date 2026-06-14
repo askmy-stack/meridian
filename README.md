@@ -167,6 +167,8 @@ meridian/
 
 Training labels: `data/disruption_labels.csv` — 50+ public disruption case studies (Suez 2021, Fukushima, Taiwan earthquake, Red Sea, COVID lockdowns, etc.)
 
+**Phase A (real data):** TimescaleDB score history, link confidence, batch rescore — see [docs/REAL_DATA_PHASE_A.md](docs/REAL_DATA_PHASE_A.md).
+
 ---
 
 Good first issues: [labels/good first issue](https://github.com/askmy-stack/meridian/labels/good%20first%20issue)

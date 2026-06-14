@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Score all suppliers with trained XGBoost model and persist to Neo4j."""
+"""Rescore suppliers with recent :AFFECTS links and append TimescaleDB history.
+
+Batch trigger (Phase A) — full Kafka-driven rescore deferred to Phase B.
+"""
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -15,35 +19,55 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 logger = structlog.get_logger(__name__)
 
 
-def _persist_scores_to_timescale(
-    records: list,
-) -> int:
-    """Append score history batch; skip silently when TimescaleDB is down."""
-    from src.storage.timescale_writer import SupplierScoreRecord, get_timescale_writer
-
-    writer = get_timescale_writer()
-    if not writer.is_configured():
-        logger.info("timescale_history_skipped", reason="not_configured")
-        return 0
-    return writer.write_score_batch_sync(records)
+def suppliers_with_recent_affects(neo4j_client, hours: int) -> list[str]:
+    """Return supplier IDs linked by new AFFECTS edges in the lookback window."""
+    rows = neo4j_client.execute_query(
+        """
+        MATCH (e:Event)-[r:AFFECTS]->(s:Supplier)
+        WHERE coalesce(r.linked_at, e.ingested_at, e.resolved_at)
+              > datetime() - duration({hours: $hours})
+        RETURN DISTINCT s.id AS supplier_id
+        ORDER BY supplier_id
+        """,
+        {"hours": hours},
+    )
+    return [str(row["supplier_id"]) for row in rows if row.get("supplier_id")]
 
 
 def main() -> int:
     load_dotenv()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--hours",
+        type=int,
+        default=int(os.getenv("RESCORE_LOOKBACK_HOURS", "24")),
+        help="Look back window for new AFFECTS edges (default: 24)",
+    )
+    args = parser.parse_args()
+
     from src.graph import get_neo4j_client, get_supplier_repository
     from src.intelligence.feature_builder import build_supplier_features
     from src.intelligence.risk_scorer import get_risk_scorer
-    from src.storage.timescale_writer import SupplierScoreRecord
+    from src.storage.timescale_writer import SupplierScoreRecord, get_timescale_writer
 
     client = get_neo4j_client()
     repo = get_supplier_repository()
     scorer = get_risk_scorer()
+    writer = get_timescale_writer()
 
-    suppliers = repo.get_all(limit=500)
+    supplier_ids = suppliers_with_recent_affects(client, args.hours)
+    if not supplier_ids:
+        print(f"No suppliers with :AFFECTS links in last {args.hours}h")
+        logger.info("rescore_skipped", reason="no_recent_links", hours=args.hours)
+        return 0
+
     updated = 0
     history_records: list[SupplierScoreRecord] = []
 
-    for supplier in suppliers:
+    for supplier_id in supplier_ids:
+        supplier = repo.get_by_id(supplier_id)
+        if supplier is None:
+            continue
         features = build_supplier_features(
             supplier.id,
             single_source_flag=bool(supplier.single_source_flag),
@@ -73,16 +97,20 @@ def main() -> int:
                 risk_score=result.risk_score,
                 risk_category=result.risk_category,
                 model_version=result.model_version,
-                feature_snapshot=features.to_dict() if hasattr(features, "to_dict") else None,
             )
         )
         updated += 1
 
-    history_written = _persist_scores_to_timescale(history_records)
-    print(f"Scored {updated} suppliers (model: {scorer.model_path or 'default'})")
+    history_written = writer.write_score_batch_sync(history_records) if writer.is_configured() else 0
+    print(f"Rescored {updated} suppliers (lookback {args.hours}h)")
     if history_written:
         print(f"TimescaleDB history rows: {history_written}")
-    logger.info("suppliers_scored", count=updated, timescale_rows=history_written)
+    logger.info(
+        "rescore_complete",
+        suppliers=updated,
+        hours=args.hours,
+        timescale_rows=history_written,
+    )
     return 0
 
 
