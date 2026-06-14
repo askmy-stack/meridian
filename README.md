@@ -22,7 +22,7 @@
 | [**Graph health**](docs/DEMO.md) | Tier-2 coverage, completeness score, model calibration |
 | [**Alerts**](docs/DEMO.md) | Tiered feed, causal association badges, map deep links |
 
-📖 [**Quickstart**](docs/QUICKSTART.md) · 🎬 [**Demo script**](docs/DEMO.md) · ⚠️ [**Limitations**](docs/LIMITATIONS.md) · 🚀 [**Deploy**](docs/DEPLOY_QUICKSTART.md)
+📖 [**Quickstart**](docs/QUICKSTART.md) · ⚠️ [**Limitations**](docs/LIMITATIONS.md) · 🚀 [**Deploy**](docs/DEPLOY_QUICKSTART.md)
 
 ---
 
