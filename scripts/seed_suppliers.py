@@ -366,7 +366,7 @@ def main():
     # Connect to Neo4j
     if not args.dry_run:
         client = Neo4jClient(
-            uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+            uri=os.getenv("NEO4J_URI", "bolt://localhost:7688"),
             username=os.getenv("NEO4J_USER", "neo4j"),
             password=os.getenv("NEO4J_PASSWORD", "meridian_password"),
         )
@@ -392,6 +392,9 @@ def main():
     if args.dry_run:
         print("DRY RUN — No data written to Neo4j")
     else:
+        from src.entity_resolution import get_fuzzy_matcher
+
+        get_fuzzy_matcher().invalidate_cache()
         print("Seeding complete! View the graph at http://localhost:7474")
         print("Query to see all suppliers:")
         print("  MATCH (s:Supplier) RETURN s LIMIT 25")

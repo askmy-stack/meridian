@@ -20,6 +20,7 @@ import {
   runSimulationScenario,
 } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
@@ -33,12 +34,13 @@ export function SimulationView() {
   const location = useLocation();
   const [result, setResult] = useState(null);
   const [runningId, setRunningId] = useState(null);
+  const [runError, setRunError] = useState(null);
   const [compareA, setCompareA] = useState('red-sea-bab-el-mandeb');
   const [compareB, setCompareB] = useState('suez-canal-blockage');
   const [compareResult, setCompareResult] = useState(null);
   const [comparing, setComparing] = useState(false);
 
-  const { data, isLoading } = useQuery(['simulation-scenarios'], fetchSimulationScenarios, {
+  const { data, isLoading, isError, refetch } = useQuery(['simulation-scenarios'], fetchSimulationScenarios, {
     staleTime: 5 * 60_000,
   });
 
@@ -52,10 +54,12 @@ export function SimulationView() {
 
   const handleRun = async (scenarioId) => {
     setRunningId(scenarioId);
+    setRunError(null);
     try {
       setResult(await runSimulationScenario(scenarioId));
     } catch {
       setResult(null);
+      setRunError('Simulation failed — check API logs and Neo4j connectivity.');
     } finally {
       setRunningId(null);
     }
@@ -107,6 +111,13 @@ export function SimulationView() {
       </header>
 
       {isLoading && <LoadingState />}
+      {isError && (
+        <ErrorBanner
+          message="Could not load simulation scenarios."
+          onRetry={() => refetch()}
+        />
+      )}
+      {runError && <ErrorBanner message={runError} />}
       {preselect && !result && (
         <p className="text-sm text-cyan-400">
           Copilot suggested scenario: <button type="button" className="underline" onClick={() => handleRun(preselect)}>{preselect}</button>

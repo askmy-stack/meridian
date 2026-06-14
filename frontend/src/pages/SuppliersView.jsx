@@ -3,6 +3,7 @@ import { useQuery } from 'react-query';
 import { Factory, Search, ShieldAlert, TrendingUp } from 'lucide-react';
 import { fetchSuppliers, fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
@@ -47,6 +48,13 @@ export function SuppliersView() {
           SCRI scores with SHAP explainability and TGN risk trajectory
         </p>
       </div>
+
+      {suppliersQuery.isError && (
+        <ErrorBanner
+          message="Could not load suppliers — ensure Neo4j is seeded (`make seed-all`)."
+          onRetry={() => suppliersQuery.refetch()}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <Panel className="lg:col-span-2" title="Suppliers" subtitle={`${suppliers.length} in graph`}>
@@ -102,6 +110,12 @@ export function SuppliersView() {
             </div>
           )}
           {selectedId && explanationQuery.isLoading && <LoadingState />}
+          {selectedId && explanationQuery.isError && (
+            <ErrorBanner
+              message="Could not load SCRI explanation for this supplier."
+              onRetry={() => explanationQuery.refetch()}
+            />
+          )}
           {explanationQuery.data && (
             <div className="space-y-6">
               <div className="flex flex-wrap items-end gap-3 sm:gap-4">

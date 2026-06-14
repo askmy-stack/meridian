@@ -18,7 +18,7 @@ Meridian is a **portfolio-grade demo** of supply chain geopolitical risk intelli
 |--------|--------|
 | GDELT / ACLED events → graph | Demo ingest path; not continuous production Kafka at scale |
 | Conflict proximity, recent events | **Live** from Neo4j when seeded |
-| Political stability (WGI) | **Static country table** — not live World Bank API |
+| Political stability (WGI) | **Cached World Bank WGI** via `make fetch-wgi`; static fallback when cache missing |
 | Weather risk | **Default 0** — NOAA layer stub, not in SCRI features yet |
 | Port congestion | **Partial** — derived from graph chokepoint vessel counts |
 | Financial health, market volatility | **Heuristic defaults**, not ERP or market feeds |
@@ -32,7 +32,7 @@ Meridian is a **portfolio-grade demo** of supply chain geopolitical risk intelli
 | TGN temporal forecasting | Research track; **LSTM fallback** when TGN weights unavailable |
 | Labeled disruption dataset for calibration | Not built — see `docs/ROADMAP_FLAW_FIXES.md` Chunk 2 |
 | ERP / tier-N graph expansion | Chunk 2+ |
-| Live WGI / sanctions / AIS at scale | Chunk 2–3 |
+| Live WGI at scale (auto-refresh) / sanctions / AIS | WGI cached on demand; continuous ingest deferred |
 | Kafka-only microservice topology simplification | Documented, not refactored in Chunk 1 |
 
 ## How to read SCRI in the UI

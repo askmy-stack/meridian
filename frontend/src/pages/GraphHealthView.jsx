@@ -2,6 +2,7 @@ import { useQuery } from 'react-query';
 import { Activity, Database, MapPin, Network, Shield, Target } from 'lucide-react';
 import { fetchBacktestSummary, fetchGraphHealth, fetchMetricsMethodology } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
@@ -28,6 +29,12 @@ export function GraphHealthView() {
   return (
     <div className="space-y-6">
       <DemoBanner />
+      {healthQuery.isError && (
+        <ErrorBanner
+          message="Could not load graph health — Neo4j may be down or unseeded."
+          onRetry={() => healthQuery.refetch()}
+        />
+      )}
       <header>
         <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-1">
           Ops · Graph completeness

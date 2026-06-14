@@ -28,6 +28,7 @@ import {
   getDigestExportUrl,
 } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
@@ -52,6 +53,7 @@ export function Dashboard() {
   });
 
   const loading = statsQuery.isLoading && digestQuery.isLoading;
+  const hasError = statsQuery.isError || digestQuery.isError;
   const stats = statsQuery.data;
   const digest = digestQuery.data;
   const methodology = methodologyQuery.data;
@@ -70,6 +72,15 @@ export function Dashboard() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <DemoBanner />
+      {hasError && (
+        <ErrorBanner
+          message="Could not load dashboard data — ensure the API is running on port 8002."
+          onRetry={() => {
+            statsQuery.refetch();
+            digestQuery.refetch();
+          }}
+        />
+      )}
 
       <section
         className="relative overflow-hidden rounded-3xl border border-blue-500/20 p-8 sm:p-10"

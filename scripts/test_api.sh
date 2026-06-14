@@ -7,11 +7,11 @@ echo "MERIDIAN API ENDPOINT TESTS"
 echo "=============================================="
 echo ""
 echo "Prerequisites:"
-echo "- API server running: uvicorn src.api.main:app --reload"
+echo "- API server running: uvicorn src.api.main:app --reload --port 8002"
 echo "- Infrastructure: docker compose up -d"
 echo ""
 
-BASE_URL="http://localhost:8000"
+BASE_URL="${MERIDIAN_API_URL:-http://localhost:8002}"
 
 # Colors
 GREEN='\033[0;32m'

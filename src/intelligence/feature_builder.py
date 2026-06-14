@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional, Tuple
 
 import structlog
 
-from .risk_scorer import FeatureVector
+from .feature_vector import FeatureVector
 
 logger = structlog.get_logger(__name__)
 

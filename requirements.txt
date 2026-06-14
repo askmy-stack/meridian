@@ -55,6 +55,7 @@ rapidfuzz==3.6.1
 # API Authentication
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1  # pin: passlib 1.7.4 breaks on bcrypt 4.1+ / Python 3.13
 
 # MLflow tracking (Phase 3 model registry)
 mlflow==2.9.2
