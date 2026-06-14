@@ -29,8 +29,10 @@ def test_causal_fields_for_alert() -> None:
         effect_size=None,
         refutation_passed=False,
         disclaimer="Not enough paired observations.",
+        sample_count=3,
     )
     fields = causal_fields_for_alert(assessment)
     assert fields["causal_method"] == "insufficient_data"
     assert fields["causal_claim_allowed"] is False
     assert fields["causal_disclaimer"] == "Not enough paired observations."
+    assert fields["causal_sample_count"] == 3

@@ -8,14 +8,38 @@ This guide covers deploying Meridian to production environments using:
 
 ## Prerequisites
 
-- AWS CLI configured with appropriate credentials
-- Terraform >= 1.0
+- AWS CLI configured with appropriate credentials (ECS path only)
+- Terraform >= 1.0 (ECS path only)
 - Docker and Docker Compose
 - GitHub repository with secrets configured
 
 ---
 
-## Option 1: AWS ECS Fargate Deployment (Recommended)
+## Portfolio demo (Railway + Vercel) — recommended MVP path
+
+For **recruiter demos and LinkedIn portfolio links**, deploy the smallest working stack before investing in AWS ECS.
+
+| Component | Platform | Notes |
+|-----------|----------|-------|
+| Frontend (Vite/React) | **Vercel** | Connect GitHub repo, root `frontend/`, build `npm run build`, output `dist/` |
+| API (FastAPI) | **Railway** | Dockerfile or Nixpacks from repo root; expose port `8000` |
+| Neo4j | **Railway** or **Neo4j Aura Free** | Aura free tier fits demo graph size; set `NEO4J_URI` on API service |
+| Env | Both | `VITE_API_URL` → Railway API URL; `NEO4J_*`, `JWT_SECRET_KEY` on API |
+
+### Quick steps
+
+1. **Railway:** New project → deploy API service → add Neo4j (plugin or Aura connection string).
+2. **Seed data:** Run `make seed-all` against the remote Neo4j (or run seed scripts from a one-off Railway job / local with remote URI).
+3. **Vercel:** Import repo → set root directory `frontend` → add `VITE_API_URL=https://your-api.up.railway.app`.
+4. **Verify:** `/health` on API, map loads on Vercel preview URL, `make pipeline-refresh` optional for live GDELT.
+
+See also `docs/DEMO.md` for the 5-minute local demo script. Record GIF to `docs/assets/meridian-demo.gif` after deploy.
+
+**Cost:** Vercel hobby + Railway starter + Aura free ≈ **$0–20/mo** — suitable until open-source traction justifies ECS.
+
+---
+
+## Option 1: AWS ECS Fargate Deployment (production scale)
 
 ### Step 1: Configure AWS Credentials
 

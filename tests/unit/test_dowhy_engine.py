@@ -17,3 +17,4 @@ def test_causal_association_only_with_small_sample() -> None:
     result = assess_event_supplier_link(severities, deltas)
     assert result.method == "association_only"
     assert result.effect_size is not None
+    assert result.sample_count == 10
