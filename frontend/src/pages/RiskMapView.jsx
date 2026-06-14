@@ -15,7 +15,8 @@ import { useEntityDrawer } from '../context/EntityDrawerContext';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
-import { riskPillClass } from '../lib/risk';
+import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
+import { formatRiskPercent } from '../lib/risk';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -231,13 +232,11 @@ export function RiskMapView() {
                 }
                 className="text-left p-3 rounded-xl border border-slate-700/50 bg-slate-900/30 hover:border-blue-500/40 transition-colors"
               >
-                <div className="flex justify-between gap-2 items-start">
-                  <span className="font-medium text-white truncate text-sm">{f.properties.name}</span>
-                  <div className="text-right shrink-0">
-                    <span className={`risk-pill text-[10px] ${riskPillClass(f.properties.risk_score)}`}>
-                      {Math.round((f.properties.risk_score ?? 0) * 100)}
-                    </span>
-                    <p className="text-[9px] text-slate-500 uppercase mt-0.5 inline-flex items-center justify-end">
+                <div className="flex justify-between gap-2 sm:gap-3 items-start">
+                  <span className="font-medium text-white truncate text-sm min-w-0">{f.properties.name}</span>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <RiskPill score={f.properties.risk_score} size="sm" />
+                    <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wide inline-flex items-center justify-end">
                       SCRI
                       <MetricTooltip
                         label="SCRI"
@@ -251,6 +250,7 @@ export function RiskMapView() {
                     </p>
                   </div>
                 </div>
+                <RiskBar score={f.properties.risk_score} className="mt-2" />
                 <p className="text-xs text-slate-500 mt-1">{f.properties.country || f.properties.entity_type}</p>
               </button>
             ))}

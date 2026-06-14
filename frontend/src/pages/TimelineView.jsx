@@ -7,7 +7,8 @@ import { DemoBanner } from '../components/DemoBanner';
 import { useEntityDrawer } from '../context/EntityDrawerContext';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
-import { riskColor, riskPillClass } from '../lib/risk';
+import { RiskPill } from '../components/ui/RiskDisplay';
+import { riskColor } from '../lib/risk';
 
 export function TimelineView() {
   const [days, setDays] = useState(30);
@@ -69,9 +70,7 @@ export function TimelineView() {
                 <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className={`risk-pill text-[10px] ${riskPillClass(evt.severity)}`}>
-                        {Math.round((evt.severity ?? 0) * 100)}%
-                      </span>
+                      <RiskPill score={evt.severity ?? 0.5} size="sm" />
                       <span className="text-xs text-slate-500 capitalize">
                         {evt.event_type?.replace(/_/g, ' ')}
                       </span>

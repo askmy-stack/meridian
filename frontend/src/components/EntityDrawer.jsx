@@ -3,7 +3,9 @@ import { useQuery } from 'react-query';
 import { Globe, Play, TrendingUp, X, Zap } from 'lucide-react';
 import { fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
 import { MetricTooltip } from './ui/MetricTooltip';
-import { riskColor, riskLabel, riskPillClass } from '../lib/risk';
+import { RiskBar, RiskPill } from './ui/RiskDisplay';
+import { calibrationSublabel, useMethodology } from '../hooks/useMethodology';
+import { formatRiskPercent, riskLabel } from '../lib/risk';
 
 /**
  * Slide-over panel for any graph entity — unified across map, network, timeline.
@@ -22,6 +24,8 @@ export function EntityDrawer({ entity, onClose }) {
     () => fetchSupplierForecast(supplierId, 14),
     { enabled: Boolean(supplierId), staleTime: 120_000 },
   );
+  const { data: methodology } = useMethodology();
+  const calLabel = calibrationSublabel(methodology);
 
   if (!entity) return null;
 
@@ -58,19 +62,25 @@ export function EntityDrawer({ entity, onClose }) {
                   SCRI
                   <MetricTooltip
                     label="SCRI"
-                    definition="Supply Chain Risk Index — 0–100% probability-style exposure score from XGBoost + SHAP."
-                    reference="docs/METRICS.md"
+                    definition="Supply Chain Risk Index — band-first modelled index from XGBoost + SHAP."
+                    limitations={methodology?.limitations}
+                    reference="docs/LIMITATIONS.md"
                   />
                 </span>
-                <span className={`risk-pill text-xs ${riskPillClass(score)}`}>{riskLabel(score)}</span>
+                <RiskPill score={score} variant="category" size="sm" calibrationLabel={calLabel} />
               </div>
-              <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-                <div
-                  className="h-full rounded-full"
-                  style={{ width: `${score * 100}%`, backgroundColor: riskColor(score) }}
-                />
-              </div>
-              <p className="text-2xl font-bold text-white mt-2">{Math.round(score * 100)}%</p>
+              <RiskBar score={score} />
+              <p className="text-2xl font-bold text-white mt-2 tabular-nums">
+                {riskLabel(score)}
+                <span className="text-sm font-normal text-slate-500 ml-2">
+                  {formatRiskPercent(score)}% · {calLabel}
+                </span>
+              </p>
+              {explanation?.feature_provenance && (
+                <p className="text-xs text-amber-200/80 mt-2">
+                  Data quality: {explanation.feature_provenance.summary}
+                </p>
+              )}
             </div>
           )}
 

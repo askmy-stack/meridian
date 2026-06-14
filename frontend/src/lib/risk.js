@@ -14,6 +14,11 @@ export function riskLabel(score) {
   return 'MINIMAL';
 }
 
+/** SCRI 0–100 integer for display. */
+export function formatRiskPercent(score) {
+  return Math.round((score ?? 0) * 100);
+}
+
 export function riskPillClass(score) {
   if (score >= 0.8) return 'bg-red-500/20 text-red-300 border border-red-500/30';
   if (score >= 0.6) return 'bg-orange-500/20 text-orange-300 border border-orange-500/30';

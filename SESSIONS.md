@@ -319,7 +319,7 @@
 - **`scripts/prepare_tgn_training.py`:** snapshot manifest (`tgn_manifest.json`), readiness gate (≥7 snapshots)
 - **DoWhy at scale:** `CAUSAL_PAIR_LIMIT` env (default 100), `causal_sample_count` on alert payloads
 - **DEPLOY.md:** Portfolio demo section (Railway + Vercel) before ECS production path
-- PR `feat/demo-polish-research` targeting `main`
+- PR #8 `feat/demo-polish-research` **MERGED** to `main`
 
 ### State at end
 - `make seed-all` includes `seed-routes` (unchanged, verified)
@@ -338,6 +338,41 @@
 1. Execute Railway + Vercel deploy per DEPLOY.md
 2. Record demo GIF per `docs/DEMO.md`
 3. Cron `export_graph_snapshots.py` until `tgn_manifest.json` reports ready
+
+[OWNER NOTES]
+-
+
+---
+## Session 8 — 2026-06-14
+**Duration:** ~1h
+**Phase:** SCRI honesty — Chunk 1 (P0/P1 flaw fixes)
+
+### Built
+- **API transparency:** `/metrics/methodology` extended with `calibration_status`, `limitations`, `display_guidance`; new `/metrics/model-status`; `/health` includes model block
+- **Model honesty:** `model_source` tracking on XGBoostRiskScorer, startup warning for synthetic default
+- **Feature provenance:** `build_feature_provenance()` + `feature_provenance` on supplier explanation
+- **Monte Carlo bands:** p10/p50/p90 delay + revenue percentiles in simulator API
+- **Sector/causal UI:** `classification_method: keyword`; alert `causal_sample_count` wired end-to-end
+- **Frontend:** `ModelStatusBanner`, band-first `RiskPill`, SimulationView percentile bands, SuppliersView data-quality line
+- **Docs:** `docs/LIMITATIONS.md`, `docs/ROADMAP_FLAW_FIXES.md` (24 flaws → chunks)
+- PR #9 `feat/scri-honesty-chunk1`
+
+### State at end
+- Demo scores still work; UI/API label demo calibration explicitly
+- Unit tests + frontend build pass without Neo4j
+- Chunks 2–3 documented in roadmap (calibration dataset, deploy, live WGI, Kafka simplification)
+
+### Decisions made
+- Band-first SCRI display with "Modelled index" / "Demo calibration" sublabels per `display_guidance`
+- Chunk 1 scope limited to transparency — no training pipeline or ERP ingest
+
+### Blockers
+- None for Chunk 1 merge
+
+### Next session starts with
+1. Chunk 2: labeled disruption dataset + `train_risk_model` production artifact
+2. Railway + Vercel deploy per DEPLOY.md
+3. Live WGI API integration
 
 [OWNER NOTES]
 -

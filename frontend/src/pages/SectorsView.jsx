@@ -4,9 +4,11 @@ import { ArrowRight, Factory, TrendingUp } from 'lucide-react';
 import { fetchSectorDashboard } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { useEntityDrawer } from '../context/EntityDrawerContext';
+import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
-import { riskColor, riskPillClass } from '../lib/risk';
+import { RiskBar, RiskListBody, RiskPill } from '../components/ui/RiskDisplay';
+import { riskColor } from '../lib/risk';
 
 export function SectorsView() {
   const { openEntity } = useEntityDrawer();
@@ -26,8 +28,16 @@ export function SectorsView() {
           Portfolio analytics
         </p>
         <h1 className="page-title">Sector Risk Dashboard</h1>
-        <p className="mt-2 text-slate-400 max-w-2xl">
+        <p className="mt-2 text-slate-400 max-w-2xl inline-flex flex-wrap items-center gap-1">
           Aggregate exposure across semiconductors, energy, automotive, and shipping — ranked by live graph scores.
+          <MetricTooltip
+            label="Sector assignment"
+            definition="Suppliers are grouped by keyword match on name and industry fields — demo taxonomy, not ML classification."
+            reference="docs/LIMITATIONS.md"
+          />
+        </p>
+        <p className="mt-1 text-xs text-amber-200/70">
+          Sector assignment: keyword match (demo)
         </p>
       </header>
 
@@ -64,7 +74,7 @@ export function SectorsView() {
                   <li key={s.id}>
                     <button
                       type="button"
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-700/50 hover:border-violet-500/40 hover:bg-slate-800/40 text-left transition-all"
+                      className="risk-list-row border-slate-700/50 hover:border-violet-500/40 hover:bg-slate-800/40"
                       onClick={() =>
                         openEntity({
                           id: s.id,
@@ -76,21 +86,8 @@ export function SectorsView() {
                       }
                     >
                       <Factory className="h-4 w-4 text-violet-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{s.name}</p>
-                        <div className="mt-1 h-1 rounded-full bg-slate-800 overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{
-                              width: `${(s.risk_score ?? 0) * 100}%`,
-                              backgroundColor: riskColor(s.risk_score),
-                            }}
-                          />
-                        </div>
-                      </div>
-                      <span className={`risk-pill text-[10px] ${riskPillClass(s.risk_score)}`}>
-                        {Math.round((s.risk_score ?? 0) * 100)}%
-                      </span>
+                      <RiskListBody title={s.name} score={s.risk_score} />
+                      <RiskPill score={s.risk_score} size="sm" />
                     </button>
                   </li>
                 ))}

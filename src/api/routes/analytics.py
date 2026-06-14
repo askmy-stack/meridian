@@ -45,6 +45,7 @@ async def sector_dashboard() -> dict:
         if not matched:
             sectors[key] = {
                 "sector": key,
+                "classification_method": "keyword",
                 "supplier_count": 0,
                 "avg_risk": 0.0,
                 "max_risk": 0.0,
@@ -55,6 +56,7 @@ async def sector_dashboard() -> dict:
         risks = [float(m.get("risk") or 0) for m in matched]
         sectors[key] = {
             "sector": key,
+            "classification_method": "keyword",
             "supplier_count": len(matched),
             "avg_risk": round(sum(risks) / len(risks), 3),
             "max_risk": round(max(risks), 3),
@@ -73,7 +75,7 @@ async def sector_dashboard() -> dict:
                 reverse=True,
             )[:5],
         }
-    return {"sectors": list(sectors.values()), "generated_at": datetime.now().isoformat()}
+    return {"sectors": list(sectors.values()), "generated_at": datetime.now().isoformat(), "classification_method": "keyword"}
 
 
 @router.get("/export/digest.md")

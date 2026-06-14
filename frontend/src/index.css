@@ -88,7 +88,45 @@
   }
 
   .risk-pill {
-    @apply px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide;
+    @apply inline-flex items-center justify-center shrink-0 rounded-full font-bold border tabular-nums leading-none;
+  }
+
+  .risk-pill-score {
+    @apply normal-case tracking-normal;
+  }
+
+  .risk-pill-category {
+    @apply uppercase tracking-wide;
+  }
+
+  .risk-pill-sm {
+    min-width: 2.75rem;
+    @apply px-2 py-1 text-[10px] sm:min-w-[3rem] sm:px-2.5 sm:py-1 sm:text-xs;
+  }
+
+  .risk-pill-md {
+    min-width: 3rem;
+    @apply px-2.5 py-1 text-xs sm:min-w-[3.25rem] sm:px-3 sm:py-1.5 sm:text-xs;
+  }
+
+  .risk-bar {
+    @apply w-full h-1.5 sm:h-2 rounded-full bg-slate-800 overflow-hidden;
+  }
+
+  .risk-bar-fill {
+    @apply h-full rounded-full transition-all duration-300;
+  }
+
+  .risk-list-row {
+    @apply w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-3.5 rounded-xl border text-left transition-all;
+  }
+
+  .risk-list-body {
+    @apply flex-1 min-w-0;
+  }
+
+  .risk-list-title {
+    @apply text-sm font-medium text-white truncate;
   }
 
   .page-title {

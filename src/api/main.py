@@ -86,7 +86,16 @@ app.include_router(simulation_routes.router)
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Basic health check endpoint."""
-    return {"status": "healthy", "service": "meridian-api"}
+    from ..intelligence.model_status import get_risk_model_status
+
+    model = get_risk_model_status(ensure_scorer=True)
+    return {
+        "status": "healthy",
+        "service": "meridian-api",
+        "model": model,
+        "calibration_status": model.get("calibration_status"),
+        "is_demo_calibration": model.get("is_demo_calibration"),
+    }
 
 
 @app.get("/health/neo4j", tags=["Health"])
@@ -655,9 +664,12 @@ async def get_supplier_risk_explanation(supplier_id: str):
                 detail="Supplier not found",
             )
 
+        client = get_neo4j_client()
+
         # Prefer full ML stack when XGBoost/SHAP are installed; otherwise demo factors.
         try:
             from ..intelligence import get_supplier_risk
+            from ..intelligence.feature_builder import build_feature_provenance
 
             result = get_supplier_risk(supplier_id)
             if "error" not in result:
@@ -671,18 +683,27 @@ async def get_supplier_risk_explanation(supplier_id: str):
                     }
                     for factor in current_risk.get("top_factors", [])
                 ]
+                provenance = build_feature_provenance(
+                    supplier_id,
+                    single_source_flag=supplier.single_source_flag or False,
+                    critical_flag=getattr(supplier, "critical_flag", False) or False,
+                    country_iso=supplier.country_iso,
+                    neo4j_client=client,
+                )
                 return {
                     "supplier_id": supplier_id,
                     "risk_score": current_risk.get("risk_score"),
                     "risk_category": current_risk.get("risk_category"),
                     "explanations": explanations,
+                    "feature_provenance": provenance,
                     "model_version": result.get("model_versions", {}).get("risk_scorer"),
                     "generated_at": datetime.now().isoformat(),
                 }
         except ImportError:
             logger.info("risk_explanation_demo_mode", supplier_id=supplier_id)
 
-        client = get_neo4j_client()
+        from ..intelligence.feature_builder import build_feature_provenance
+
         event_rows = client.execute_query(
             """
             MATCH (e:Event)-[:AFFECTS]->(s:Supplier {id: $supplier_id})
@@ -723,6 +744,14 @@ async def get_supplier_risk_explanation(supplier_id: str):
                 "direction": "increases",
             })
 
+        provenance = build_feature_provenance(
+            supplier_id,
+            single_source_flag=supplier.single_source_flag or False,
+            critical_flag=getattr(supplier, "critical_flag", False) or False,
+            country_iso=supplier.country_iso,
+            neo4j_client=client,
+        )
+
         return {
             "supplier_id": supplier_id,
             "risk_score": supplier.risk_score,
@@ -733,6 +762,7 @@ async def get_supplier_risk_explanation(supplier_id: str):
                 "contribution": 0.05,
                 "direction": "neutral",
             }],
+            "feature_provenance": provenance,
             "model_version": "demo-heuristic-v1",
             "generated_at": datetime.now().isoformat(),
         }

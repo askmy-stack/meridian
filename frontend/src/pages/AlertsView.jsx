@@ -47,6 +47,7 @@ export function AlertsView() {
     causalMethod: a.causal_method,
     causalDisclaimer: a.causal_disclaimer,
     causalEffectSize: a.causal_effect_size,
+    causalSampleCount: a.causal_sample_count,
   }));
 
   const getTierIcon = (tier) => {
@@ -144,13 +145,18 @@ export function AlertsView() {
                     <span className="risk-pill text-[10px] bg-black/20">{alert.tier}</span>
                     {alert.causalMethod && (
                       <span
-                        className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                        className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border ${
                           alert.causalClaimAllowed
-                            ? 'border-emerald-500/40 text-emerald-300'
-                            : 'border-amber-500/40 text-amber-300'
+                            ? 'border-emerald-500/40 text-emerald-300 bg-emerald-500/10'
+                            : 'border-amber-500/50 text-amber-200 bg-amber-500/15'
                         }`}
                       >
                         {alert.causalClaimAllowed ? 'Causal verified' : 'Association only'}
+                      </span>
+                    )}
+                    {typeof alert.causalSampleCount === 'number' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-600 text-slate-400">
+                        n={alert.causalSampleCount} pairs
                       </span>
                     )}
                     {alert.causalDisclaimer && (

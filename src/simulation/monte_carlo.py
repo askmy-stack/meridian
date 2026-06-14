@@ -49,6 +49,12 @@ class SimulationResult:
     # Probabilistic outcomes
     disruption_probability: float  # 0-1
     expected_duration_days: float
+    p10_delay_days: float = 0.0
+    p50_delay_days: float = 0.0
+    p90_delay_days: float = 0.0
+    p10_revenue_at_risk: float = 0.0
+    p50_revenue_at_risk: float = 0.0
+    p90_revenue_at_risk: float = 0.0
     
     # Distribution of outcomes
     impact_distribution: Dict[str, List[float]] = field(default_factory=dict)
@@ -71,6 +77,12 @@ class SimulationResult:
             "total_revenue_at_risk": round(self.total_revenue_at_risk, 2),
             "disruption_probability": round(self.disruption_probability, 4),
             "expected_duration_days": round(self.expected_duration_days, 1),
+            "p10_delay_days": round(self.p10_delay_days, 1),
+            "p50_delay_days": round(self.p50_delay_days, 1),
+            "p90_delay_days": round(self.p90_delay_days, 1),
+            "p10_revenue_at_risk": round(self.p10_revenue_at_risk, 2),
+            "p50_revenue_at_risk": round(self.p50_revenue_at_risk, 2),
+            "p90_revenue_at_risk": round(self.p90_revenue_at_risk, 2),
             "propagation_steps": len(self.propagation_steps)
         }
 
@@ -164,6 +176,7 @@ class MonteCarloSimulator:
         affected_suppliers_per_run = []
         affected_skus_per_run = []
         revenue_at_risk_per_run = []
+        delay_days_per_run: List[float] = []
         
         propagation_paths = []
         
@@ -174,6 +187,7 @@ class MonteCarloSimulator:
             if outcome["disrupted"]:
                 disruption_count += 1
                 total_duration += outcome["duration"]
+                delay_days_per_run.append(float(outcome["duration"]))
                 affected_suppliers_per_run.append(outcome["affected_suppliers"])
                 affected_skus_per_run.append(outcome["affected_skus"])
                 revenue_at_risk_per_run.append(outcome["revenue_at_risk"])
@@ -196,6 +210,13 @@ class MonteCarloSimulator:
         expected_revenue_at_risk = (
             np.mean(revenue_at_risk_per_run) if revenue_at_risk_per_run else 0
         )
+
+        p10_delay = float(np.percentile(delay_days_per_run, 10)) if delay_days_per_run else 0.0
+        p50_delay = float(np.percentile(delay_days_per_run, 50)) if delay_days_per_run else 0.0
+        p90_delay = float(np.percentile(delay_days_per_run, 90)) if delay_days_per_run else 0.0
+        p10_rev = float(np.percentile(revenue_at_risk_per_run, 10)) if revenue_at_risk_per_run else 0.0
+        p50_rev = float(np.percentile(revenue_at_risk_per_run, 50)) if revenue_at_risk_per_run else 0.0
+        p90_rev = float(np.percentile(revenue_at_risk_per_run, 90)) if revenue_at_risk_per_run else 0.0
         
         # Build propagation steps (aggregate from all runs)
         propagation_steps = self._aggregate_propagation_paths(propagation_paths)
@@ -208,6 +229,12 @@ class MonteCarloSimulator:
             total_revenue_at_risk=expected_revenue_at_risk,
             disruption_probability=disruption_probability,
             expected_duration_days=expected_duration,
+            p10_delay_days=p10_delay,
+            p50_delay_days=p50_delay,
+            p90_delay_days=p90_delay,
+            p10_revenue_at_risk=p10_rev,
+            p50_revenue_at_risk=p50_rev,
+            p90_revenue_at_risk=p90_rev,
             impact_distribution={
                 "suppliers": affected_suppliers_per_run,
                 "skus": affected_skus_per_run,
