@@ -7,7 +7,7 @@
 
 **Supply Chain Risk Intelligence (SCRI)** — geopolitical signals, a Neo4j knowledge graph, explainable risk scores, and disruption simulation.
 
-> Every major supply chain disruption of the last 20 years was visible in open signals weeks before impact. Meridian connects GDELT, conflict, shipping, and weather data to **your** suppliers with honest calibration labels — band-first SCRI display, not false precision.
+> Every major supply chain disruption of the last 20 years was visible in open signals weeks before impact. Meridian connects GDELT, conflict, shipping, and weather data to **your** suppliers with honest calibration labels band-first SCRI display, not false precision.
 
 ---
 
@@ -170,11 +170,3 @@ Training labels: `data/disruption_labels.csv` — 50+ public disruption case stu
 **Phase A (real data):** TimescaleDB score history, link confidence, batch rescore — see [docs/REAL_DATA_PHASE_A.md](docs/REAL_DATA_PHASE_A.md).
 
 ---
-
-Good first issues: [labels/good first issue](https://github.com/askmy-stack/meridian/labels/good%20first%20issue)
-
----
-
-## License
-
-[Apache 2.0](LICENSE) — use it, fork it, build on it.
