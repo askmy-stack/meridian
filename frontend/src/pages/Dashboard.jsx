@@ -95,6 +95,11 @@ export function Dashboard() {
                 digest?.narrative ||
                 'Geopolitical signals mapped to your supplier network with explainable SCRI scores.'}
             </p>
+            {digest?.narrative_type === 'template' && (
+              <span className="inline-flex mt-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border border-slate-600 text-slate-400">
+                Weekly digest · template narrative
+              </span>
+            )}
             <a
               href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
               target="_blank"

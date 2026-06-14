@@ -78,6 +78,10 @@ export function Layout() {
           </nav>
 
           <div className="p-4 border-t border-slate-800/80 space-y-3">
+            <NavLink to="/ops/graph-health" className={navClass} onClick={() => setMobileOpen(false)}>
+              <Radio className="h-4 w-4 shrink-0" />
+              Graph health
+            </NavLink>
             <div className="flex items-center gap-2 px-2">
               <Radio className={`h-3.5 w-3.5 ${live ? 'text-emerald-400' : 'text-amber-400'}`} />
               <span className="text-xs text-slate-400">

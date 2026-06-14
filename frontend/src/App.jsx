@@ -11,6 +11,7 @@ import { SimulationView } from './pages/SimulationView';
 import { TimelineView } from './pages/TimelineView';
 import { SectorsView } from './pages/SectorsView';
 import { CopilotView } from './pages/CopilotView';
+import { GraphHealthView } from './pages/GraphHealthView';
 import { LoginView } from './pages/LoginView';
 import './index.css';
 
@@ -38,6 +39,7 @@ function App() {
               <Route path="suppliers" element={<SuppliersView />} />
               <Route path="simulate" element={<SimulationView />} />
               <Route path="copilot" element={<CopilotView />} />
+              <Route path="ops/graph-health" element={<GraphHealthView />} />
               <Route path="alerts" element={<AlertsView />} />
               <Route path="login" element={<LoginView />} />
             </Route>
