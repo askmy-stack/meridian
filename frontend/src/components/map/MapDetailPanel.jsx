@@ -4,6 +4,7 @@ import { fetchRegionRegime } from '../../api/client';
 import { MetricTooltip } from '../ui/MetricTooltip';
 import { RiskBar, RiskPill } from '../ui/RiskDisplay';
 import { formatRiskPercent } from '../../lib/risk';
+import { METRICS_URL, SCRI_TOOLTIP } from '../../lib/uiCopy';
 
 const REGIME_STYLES = {
   stable: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
@@ -61,7 +62,7 @@ export function MapDetailPanel({ feature, onClose }) {
               SCRI
               <MetricTooltip
                 label="SCRI"
-                definition="Supply Chain Risk Index — 0–100% probability-style exposure score from XGBoost + SHAP."
+                definition={SCRI_TOOLTIP}
                 reference="docs/METRICS.md"
               />
             </span>
@@ -124,8 +125,8 @@ export function MapDetailPanel({ feature, onClose }) {
         {typeof score === 'number' && (
           <p className="mt-2 text-blue-200/70">
             SCRI methodology:{' '}
-            <a href="/docs/METRICS.md" className="underline hover:text-blue-100">
-              docs/METRICS.md
+            <a href={METRICS_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-100">
+              SCRI methodology
             </a>
           </p>
         )}

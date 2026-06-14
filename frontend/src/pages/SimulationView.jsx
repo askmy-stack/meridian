@@ -25,10 +25,15 @@ import { CountryPriceTable } from '../components/ui/CountryPriceTable';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RegionRiskMap } from '../components/ui/RegionRiskMap';
 import { SCENARIO_COUNTRY_OVERLAY } from '../data/sectorIntelligence';
+import {
+  ERRORS,
+  METRICS_URL,
+  NAV_LABELS,
+} from '../lib/uiCopy';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -63,7 +68,7 @@ export function SimulationView() {
       setResult(await runSimulationScenario(scenarioId));
     } catch {
       setResult(null);
-      setRunError('Simulation failed — check API logs and Neo4j connectivity.');
+      setRunError(ERRORS.simulationRun);
     } finally {
       setRunningId(null);
     }
@@ -81,11 +86,11 @@ export function SimulationView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
       <PageHeader
-        eyebrow="Scenario Engine"
-        title="Disruption Simulator"
+        eyebrow="Scenario engine"
+        title={NAV_LABELS.simulate}
         subtitle="Trade disruptions, port closures, sanctions, and conflicts — BFS propagation plus 1,000-iteration Monte Carlo with regional impact maps."
         badges={['BFS · Monte Carlo', 'Timeline-linked recovery']}
         gradient="amber"
@@ -103,7 +108,7 @@ export function SimulationView() {
         }
       >
         <a
-          href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md#simulation-metrics"
+          href={`${METRICS_URL}#simulation-metrics`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300"
@@ -116,7 +121,7 @@ export function SimulationView() {
       {isLoading && <LoadingState />}
       {isError && (
         <ErrorBanner
-          message="Could not load simulation scenarios."
+          message={ERRORS.simulation}
           onRetry={() => refetch()}
         />
       )}
@@ -190,7 +195,7 @@ export function SimulationView() {
         )}
       </Panel>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {scenarios.map((scenario) => (
           <article
             key={scenario.id}
@@ -380,6 +385,8 @@ export function SimulationView() {
           )}
         </>
       )}
+
+      <PageFooterNote note="Monte Carlo disruption probability is a simulation metric — distinct from supplier SCRI modelled index." />
     </div>
   );
 }

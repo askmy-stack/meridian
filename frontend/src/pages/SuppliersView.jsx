@@ -8,10 +8,17 @@ import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
 import { calibrationSublabel, useMethodology } from '../hooks/useMethodology';
+import {
+  ERRORS,
+  LOADING,
+  NAV_LABELS,
+  SCRI_SUBLABEL,
+  SCRI_TOOLTIP,
+} from '../lib/uiCopy';
 import { riskColor, formatRiskPercent, riskLabel } from '../lib/risk';
 
 const FORECAST_HORIZONS = [7, 14, 30];
@@ -54,12 +61,12 @@ export function SuppliersView() {
   const selected = enrichedSuppliers.find((s) => s.id === selectedId);
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
 
       <PageHeader
         eyebrow="Supplier registry"
-        title="Supplier Registry"
+        title={NAV_LABELS.suppliers}
         subtitle="SCRI modelled index with SHAP explainability, sector assignment, and supply-chain tier — aligned with sector dashboard taxonomy."
         badges={['XGBoost · SHAP', `${suppliers.length} visible`]}
         gradient="blue"
@@ -73,7 +80,7 @@ export function SuppliersView() {
 
       {suppliersQuery.isError && (
         <ErrorBanner
-          message="Could not load suppliers — ensure Neo4j is seeded (`make seed-all`)."
+          message={ERRORS.suppliers}
           onRetry={() => suppliersQuery.refetch()}
         />
       )}
@@ -118,7 +125,7 @@ export function SuppliersView() {
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:outline-none"
             />
           </div>
-          {suppliersQuery.isLoading && <LoadingState />}
+          {suppliersQuery.isLoading && <LoadingState label={LOADING.suppliers} />}
           <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
             {suppliers.map((s) => (
               <button
@@ -171,7 +178,7 @@ export function SuppliersView() {
           {selectedId && explanationQuery.isLoading && <LoadingState />}
           {selectedId && explanationQuery.isError && (
             <ErrorBanner
-              message="Could not load SCRI explanation for this supplier."
+              message={ERRORS.supplierExplanation}
               onRetry={() => explanationQuery.refetch()}
             />
           )}
@@ -202,7 +209,7 @@ export function SuppliersView() {
                     {riskLabel(explanationQuery.data.risk_score)}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    {formatRiskPercent(explanationQuery.data.risk_score)}% modelled index
+                    {formatRiskPercent(explanationQuery.data.risk_score)}% {SCRI_SUBLABEL.toLowerCase()}
                     {explanationQuery.data.score_interval && (
                       <span className="text-slate-400">
                         {' '}
@@ -223,7 +230,7 @@ export function SuppliersView() {
                 />
                 <MetricTooltip
                   label="SCRI"
-                  definition="Supply Chain Risk Index — band-first modelled disruption exposure (0–100% secondary)."
+                  definition={SCRI_TOOLTIP}
                   limitations={methodology?.limitations}
                   reference="docs/LIMITATIONS.md"
                 />
@@ -244,12 +251,7 @@ export function SuppliersView() {
                       <p className="text-lg font-semibold text-white tabular-nums">
                         {Math.round(score * 100)}%
                       </p>
-                      <div className="risk-bar mt-1.5 h-1">
-                        <div
-                          className="risk-bar-fill bg-gradient-to-r from-cyan-500 to-blue-500"
-                          style={{ width: `${Math.round(score * 100)}%` }}
-                        />
-                      </div>
+                      <RiskBar score={score} className="mt-1.5" />
                     </div>
                   ))}
                 </div>
@@ -329,6 +331,8 @@ export function SuppliersView() {
           )}
         </Panel>
       </div>
+
+      <PageFooterNote />
     </div>
   );
 }

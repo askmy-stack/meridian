@@ -4,11 +4,20 @@ import { useQuery } from 'react-query';
 import { AlertTriangle, Bell, Globe, Info, AlertCircle, RefreshCw, Zap } from 'lucide-react';
 import { fetchAlerts, fetchAlertStats, sendTestAlert } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
+import { RiskPill } from '../components/ui/RiskDisplay';
+import { ERRORS, LOADING, NAV_LABELS } from '../lib/uiCopy';
 
-const TIER_FILTERS = ['all', 'critical', 'warning', 'info'];
+const TIER_FILTERS = [
+  { key: 'all', label: 'All tiers' },
+  { key: 'critical', label: 'CRITICAL' },
+  { key: 'warning', label: 'WARNING' },
+  { key: 'info', label: 'INFO' },
+];
 
 function normalizeTier(tier) {
   if (!tier) return 'INFO';
@@ -26,7 +35,7 @@ export function AlertsView() {
   const [testPending, setTestPending] = useState(false);
 
   const statsQuery = useQuery(['alert-stats'], fetchAlertStats, { refetchInterval: 30_000 });
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery(
+  const { data, isLoading, isError, refetch, isFetching } = useQuery(
     ['alerts', tierFilter],
     () => fetchAlerts({ tier: tierFilter === 'all' ? undefined : tierFilter, limit: 100 }),
     { refetchInterval: 30_000 },
@@ -57,60 +66,68 @@ export function AlertsView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-        <div>
-          <h1 className="page-title">Risk Alerts</h1>
-          <p className="mt-2 text-slate-400">Real-time supply chain disruption notifications</p>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={() => refetch()} disabled={isFetching} className="btn-ghost">
-            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-          <button
-            type="button"
-            disabled={testPending}
-            className="btn-primary"
-            onClick={async () => {
-              setTestPending(true);
-              try {
-                await sendTestAlert();
-                refetch();
-                statsQuery.refetch();
-              } finally {
-                setTestPending(false);
-              }
-            }}
-          >
-            <Zap className="h-4 w-4" />
-            {testPending ? 'Emitting…' : 'Emit test alert'}
-          </button>
-        </div>
-      </div>
+
+      <PageHeader
+        eyebrow="Alert pipeline"
+        title={NAV_LABELS.alerts}
+        subtitle="Tiered supply chain disruption notifications — SCRI bands from XGBoost, not LLM-generated scores."
+        badges={['Slack-ready feed']}
+        gradient="blue"
+        actions={
+          <>
+            <button type="button" onClick={() => refetch()} disabled={isFetching} className="btn-ghost">
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+            <button
+              type="button"
+              disabled={testPending}
+              className="btn-primary"
+              onClick={async () => {
+                setTestPending(true);
+                try {
+                  await sendTestAlert();
+                  refetch();
+                  statsQuery.refetch();
+                } finally {
+                  setTestPending(false);
+                }
+              }}
+            >
+              <Zap className="h-4 w-4" />
+              {testPending ? 'Emitting…' : 'Emit test alert'}
+            </button>
+          </>
+        }
+      />
+
+      {isError && (
+        <ErrorBanner message={ERRORS.alerts} onRetry={() => refetch()} />
+      )}
 
       <div className="flex flex-wrap gap-2">
-        {TIER_FILTERS.map((t) => (
+        {TIER_FILTERS.map(({ key, label }) => (
           <button
-            key={t}
+            key={key}
             type="button"
-            onClick={() => setTierFilter(t)}
-            className={`px-4 py-2 text-sm rounded-xl border transition-all capitalize ${
-              tierFilter === t
+            onClick={() => setTierFilter(key)}
+            className={`px-4 py-2 text-sm rounded-xl border transition-all ${
+              tierFilter === key
                 ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
                 : 'border-slate-700 text-slate-400 hover:border-slate-600'
             }`}
           >
-            {t === 'all' ? 'All tiers' : t}
+            {label}
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {[
-          { label: 'Critical', val: statsQuery.data?.by_tier?.critical ?? alerts.filter((a) => a.tier === 'CRITICAL').length, color: 'text-red-400' },
-          { label: 'Warning', val: statsQuery.data?.by_tier?.warning ?? alerts.filter((a) => a.tier === 'WARNING').length, color: 'text-orange-400' },
+          { label: 'CRITICAL', val: statsQuery.data?.by_tier?.critical ?? alerts.filter((a) => a.tier === 'CRITICAL').length, color: 'text-red-400' },
+          { label: 'WARNING', val: statsQuery.data?.by_tier?.warning ?? alerts.filter((a) => a.tier === 'WARNING').length, color: 'text-orange-400' },
           { label: 'Total', val: statsQuery.data?.total ?? alerts.length, color: 'text-blue-400' },
         ].map(({ label, val, color }) => (
           <div key={label} className="stat-card text-center">
@@ -121,10 +138,7 @@ export function AlertsView() {
       </div>
 
       <Panel title="Alert feed" subtitle="Newest first · causal labels per D-005">
-        {isError && (
-          <p className="text-red-400 text-sm mb-4">Failed to load: {error?.message}</p>
-        )}
-        {isLoading && <LoadingState label="Loading alerts…" />}
+        {isLoading && <LoadingState label={LOADING.alerts} />}
         {!isLoading && alerts.length === 0 && (
           <div className="text-center py-12">
             <Bell className="h-12 w-12 text-slate-600 mx-auto mb-3" />
@@ -175,11 +189,13 @@ export function AlertsView() {
                   {alert.impactSummary && (
                     <p className="text-xs text-slate-500 mt-2 italic">{alert.impactSummary}</p>
                   )}
-                  <p className="text-xs text-slate-500 mt-2">
-                    {new Date(alert.timestamp).toLocaleString()}
-                    {alert.entity && ` · ${alert.entity}`}
-                    {typeof alert.riskScore === 'number' && ` · ${(alert.riskScore * 100).toFixed(0)}% risk`}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-slate-500">
+                    <span>{new Date(alert.timestamp).toLocaleString()}</span>
+                    {alert.entity && <span>· {alert.entity}</span>}
+                    {typeof alert.riskScore === 'number' && (
+                      <RiskPill score={alert.riskScore} size="sm" />
+                    )}
+                  </div>
                   {alert.entity && (
                     <Link
                       to={`/map?highlight=${encodeURIComponent(alert.entity)}`}
@@ -195,6 +211,8 @@ export function AlertsView() {
           ))}
         </div>
       </Panel>
+
+      <PageFooterNote />
     </div>
   );
 }

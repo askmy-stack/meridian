@@ -30,13 +30,21 @@ import {
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageHeader, PageFooterNote } from '../components/ui/PageHeader';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
 import { RiskBar, RiskListBody, RiskPill } from '../components/ui/RiskDisplay';
 import { calibrationSublabel } from '../hooks/useMethodology';
-import { riskColor } from '../lib/risk';
+import {
+  ERRORS,
+  LOADING,
+  METRICS_LINK_TEXT,
+  METRICS_URL,
+  NAV_LABELS,
+  SCRI_BADGE,
+  TEMPLATE_NARRATIVE_BADGE,
+} from '../lib/uiCopy';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -68,14 +76,14 @@ export function Dashboard() {
     scri: Math.round((r.risk_score ?? 0) * 100),
   }));
 
-  if (loading) return <LoadingState label="Loading command center…" />;
+  if (loading) return <LoadingState label={LOADING.dashboard} />;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
       {hasError && (
         <ErrorBanner
-          message="Could not load dashboard data — ensure the API is running on port 8002."
+          message={ERRORS.dashboard}
           onRetry={() => {
             statsQuery.refetch();
             digestQuery.refetch();
@@ -85,13 +93,13 @@ export function Dashboard() {
 
       <PageHeader
         eyebrow="Supply Chain Command Center"
-        title="Risk Intelligence"
+        title={NAV_LABELS.dashboard}
         subtitle={
           methodology?.description ||
           digest?.narrative ||
           'Geopolitical signals mapped to your supplier network with explainable SCRI scores.'
         }
-        badges={[`${methodology?.index_name ?? 'SCRI'} · modelled index 0–100`]}
+        badges={[SCRI_BADGE]}
         gradient="blue"
         actions={
           <>
@@ -119,21 +127,21 @@ export function Dashboard() {
       >
         {digest?.narrative_type === 'template' && (
           <span className="inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border border-slate-600 text-slate-400">
-            Weekly digest · template narrative
+            {TEMPLATE_NARRATIVE_BADGE}
           </span>
         )}
         <a
-          href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
+          href={METRICS_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300"
         >
           <BookOpen className="h-3.5 w-3.5" />
-          SCRI methodology & references
+          {METRICS_LINK_TEXT}
         </a>
       </PageHeader>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           icon={<Users className="h-6 w-6" />}
           title="Suppliers tracked"
@@ -214,7 +222,7 @@ export function Dashboard() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <Panel
           title="Top supplier SCRI"
-          subtitle="XGBoost + SHAP · 30-day disruption probability proxy"
+          subtitle="XGBoost + SHAP · modelled index bands"
           className="xl:col-span-2"
         >
           {chartData.length > 0 ? (
@@ -330,6 +338,8 @@ export function Dashboard() {
           </ul>
         </Panel>
       )}
+
+      <PageFooterNote />
     </div>
   );
 }

@@ -15,8 +15,9 @@ import { askCopilot, fetchBacktest } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
+import { COPILOT_DISCLAIMER, ERRORS, LOADING, NAV_LABELS } from '../lib/uiCopy';
 
 const BACKTEST_IDS = ['suez-2021', 'ukraine-2022'];
 
@@ -80,19 +81,18 @@ export function CopilotView() {
     : [];
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
 
       <PageHeader
         eyebrow="Phase 6 · Risk copilot"
-        title="Intelligence Copilot"
+        title={NAV_LABELS.copilot}
         subtitle="RAG-grounded Q&A — retrieves Qdrant corpus + Neo4j facts. Numeric SCRI always from XGBoost, never from the LLM."
         badges={['RAG · Graph facts']}
         gradient="cyan"
       >
         <p className="text-xs text-amber-200/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 max-w-2xl">
-          Disclaimer: Answers cite retrieved documents and graph facts. Risk scores come from XGBoost only.
-          Unmatched questions receive an explicit uncertainty response.
+          {COPILOT_DISCLAIMER} Unmatched questions receive an explicit uncertainty response.
         </p>
       </PageHeader>
 
@@ -133,14 +133,11 @@ export function CopilotView() {
             ))}
           </div>
 
-          {copilotMutation.isLoading && <LoadingState label="Analyzing graph context…" />}
+          {copilotMutation.isLoading && <LoadingState label={LOADING.copilot} />}
 
           {copilotMutation.isError && (
             <ErrorBanner
-              message={
-                copilotMutation.error?.message ||
-                'Copilot request failed — check API, Qdrant, and Neo4j are running.'
-              }
+              message={copilotMutation.error?.message || ERRORS.copilot}
               onRetry={() => copilotMutation.mutate(question)}
             />
           )}
@@ -250,7 +247,7 @@ export function CopilotView() {
 
           {backtestQuery.isError && (
             <ErrorBanner
-              message="Could not load backtest data — run `make backtest-scri` and ensure the API is up."
+              message={ERRORS.backtest}
               onRetry={() => backtestQuery.refetch()}
             />
           )}
@@ -285,6 +282,8 @@ export function CopilotView() {
           )}
         </Panel>
       </div>
+
+      <PageFooterNote />
     </div>
   );
 }

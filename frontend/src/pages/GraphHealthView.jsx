@@ -4,8 +4,10 @@ import { fetchBacktestSummary, fetchGraphHealth, fetchMetricsMethodology } from 
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
+import { ERRORS, LOADING, NAV_LABELS } from '../lib/uiCopy';
 
 function pct(value, total) {
   if (!total) return '—';
@@ -24,28 +26,27 @@ export function GraphHealthView() {
   const model = methodologyQuery.data?.model_status;
   const loading = healthQuery.isLoading;
 
-  if (loading) return <LoadingState label="Loading graph health…" />;
+  if (loading) return <LoadingState label={LOADING.graphHealth} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
       {healthQuery.isError && (
         <ErrorBanner
-          message="Could not load graph health — Neo4j may be down or unseeded."
+          message={ERRORS.graphHealth}
           onRetry={() => healthQuery.refetch()}
         />
       )}
-      <header>
-        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400 mb-1">
-          Ops · Graph completeness
-        </p>
-        <h1 className="page-title">Graph Health</h1>
-        <p className="mt-2 text-slate-400 max-w-2xl">
-          Knowledge graph coverage for portfolio demos — geo, events, tier-2 edges, and model calibration status.
-        </p>
-      </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <PageHeader
+        eyebrow="Ops · Graph completeness"
+        title={NAV_LABELS.graphHealth}
+        subtitle="Knowledge graph coverage for portfolio demos — geo, events, tier-2 edges, and model calibration status."
+        badges={['Neo4j health']}
+        gradient="cyan"
+      />
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <StatCard
           icon={<Database className="h-6 w-6" />}
           title="Suppliers"
@@ -85,7 +86,7 @@ export function GraphHealthView() {
           </p>
           <ul className="mt-4 space-y-2 text-sm text-slate-400">
             <li>Suppliers without port links: {health?.suppliers_without_ports ?? 0}</li>
-            <li>Graph status: {health?.status ?? 'unknown'}</li>
+            <li>Graph status: {health?.status ?? 'pending'}</li>
           </ul>
         </Panel>
 
@@ -95,7 +96,7 @@ export function GraphHealthView() {
             <div className="space-y-2 text-sm">
               <p>
                 <span className="text-slate-500">Source: </span>
-                <span className="text-white">{model?.model_source ?? 'unknown'}</span>
+                <span className="text-white">{model?.model_source ?? 'pending'}</span>
               </p>
               <p>
                 <span className="text-slate-500">Calibration: </span>
@@ -145,6 +146,8 @@ export function GraphHealthView() {
           </Panel>
         )}
       </div>
+
+      <PageFooterNote />
     </div>
   );
 }

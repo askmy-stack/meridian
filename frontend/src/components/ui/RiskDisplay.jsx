@@ -1,4 +1,5 @@
 import { formatRiskPercent, riskColor, riskLabel, riskPillClass } from '../../lib/risk';
+import { SCRI_SUBLABEL } from '../../lib/uiCopy';
 
 /**
  * SCRI score pill — band label primary, optional calibration sublabel.
@@ -15,7 +16,7 @@ export function RiskPill({
   const band = label ?? riskLabel(score);
   const sizeClass = size === 'sm' ? 'risk-pill-sm' : 'risk-pill-md';
   const variantClass = variant === 'category' ? 'risk-pill-category' : 'risk-pill-score';
-  const sublabel = calibrationLabel ?? 'Modelled index';
+  const sublabel = calibrationLabel ?? SCRI_SUBLABEL;
 
   if (variant === 'category') {
     return (

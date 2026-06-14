@@ -1,5 +1,6 @@
 import { AlertTriangle, Globe, Users } from 'lucide-react';
 import { SECTOR_PROFILES } from '../../data/sectorIntelligence';
+import { DEMO_SECTOR_NOTE } from '../../lib/uiCopy';
 
 /**
  * Sector context: strategic importance and human impact if disrupted.
@@ -32,7 +33,7 @@ export function SectorInfoPanel({ sectorKey, classificationMethod = 'keyword' })
         <p className="text-sm text-slate-300 leading-relaxed">{profile.globalExposure}</p>
         {classificationMethod && (
           <p className="text-[10px] text-amber-200/60 mt-2 uppercase tracking-wider">
-            Assignment: {classificationMethod} (demo)
+            {DEMO_SECTOR_NOTE}
           </p>
         )}
       </div>

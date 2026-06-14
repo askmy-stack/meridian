@@ -4,17 +4,25 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, Calendar, ChevronRight, Globe } from 'lucide-react';
 import { fetchEventTimeline } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RiskPill } from '../components/ui/RiskDisplay';
 import { buildDailyTimeline } from '../lib/timelineUtils';
 import { riskColor } from '../lib/risk';
+import {
+  ERRORS,
+  LOADING,
+  NAV_LABELS,
+  TIMELINE_DIGEST_LABEL,
+  TIMELINE_QUIET_DAYS_NOTE,
+} from '../lib/uiCopy';
 
 export function TimelineView() {
   const [days, setDays] = useState(90);
 
-  const { data, isLoading, isError } = useQuery(
+  const { data, isLoading, isError, refetch } = useQuery(
     ['event-timeline', days],
     () => fetchEventTimeline({ days }),
     { staleTime: 60_000 },
@@ -29,12 +37,12 @@ export function TimelineView() {
   const digestCount = dailyEntries.filter((e) => e.kind === 'digest').length;
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <DemoBanner />
 
       <PageHeader
-        eyebrow="Event Intelligence"
-        title="Geopolitical Timeline"
+        eyebrow="Event intelligence"
+        title={NAV_LABELS.timeline}
         subtitle="One update per day over your selected window — graph-linked events plus daily monitoring digests."
         badges={[`${days}-day window`, `${dailyEntries.length} daily entries`]}
         gradient="violet"
@@ -54,15 +62,13 @@ export function TimelineView() {
           />
         </label>
         <p className="text-xs text-slate-500">
-          {eventCount} graph events · {digestCount} routine digests (template on quiet days)
+          {eventCount} graph events · {digestCount} routine digests ({TIMELINE_DIGEST_LABEL} on quiet days)
         </p>
       </PageHeader>
 
-      {isLoading && <LoadingState label="Loading timeline…" />}
+      {isLoading && <LoadingState label={LOADING.timeline} />}
       {isError && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300 text-sm" role="alert">
-          Could not load timeline — run <code>make seed-demo</code> after Neo4j is up.
-        </div>
+        <ErrorBanner message={ERRORS.timeline} onRetry={() => refetch()} />
       )}
 
       <div className="relative max-h-[70vh] overflow-y-auto pr-1">
@@ -86,7 +92,7 @@ export function TimelineView() {
                       </span>
                       {evt.source === 'template' && (
                         <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-amber-500/30 text-amber-300/80">
-                          demo digest
+                          {TIMELINE_DIGEST_LABEL}
                         </span>
                       )}
                     </div>
@@ -128,10 +134,11 @@ export function TimelineView() {
       <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex gap-3 text-sm text-amber-100/90">
         <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" />
         <p>
-          Quiet days show template monitoring digests (clearly labelled). Graph-linked events come from Neo4j.
-          Live GDELT/ACLED ingestion will replace digests when the Kafka pipeline is connected.
+          {TIMELINE_QUIET_DAYS_NOTE} Live GDELT/ACLED ingestion will replace digests when the Kafka pipeline is connected.
         </p>
       </div>
+
+      <PageFooterNote />
     </div>
   );
 }

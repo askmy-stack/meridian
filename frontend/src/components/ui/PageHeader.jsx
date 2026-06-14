@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { FOOTER_MODEL_NOTE, LIMITATIONS_LINK_TEXT, LIMITATIONS_URL } from '../../lib/uiCopy';
 
 /**
  * Consistent page hero with eyebrow, title, subtitle, badges, and actions.
@@ -69,5 +70,22 @@ export function PageHeaderLink({ to, className = 'btn-ghost', children, ...props
     <Link to={to} className={className} {...props}>
       {children}
     </Link>
+  );
+}
+
+/** Consistent footer note for model version / limitations on content pages. */
+export function PageFooterNote({ note, className = '' }) {
+  return (
+    <p className={`text-xs text-slate-600 ${className}`.trim()}>
+      {note ?? FOOTER_MODEL_NOTE}{' '}
+      <a
+        href={LIMITATIONS_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-400/80 hover:text-blue-300 underline-offset-2 hover:underline"
+      >
+        {LIMITATIONS_LINK_TEXT}
+      </a>
+    </p>
   );
 }

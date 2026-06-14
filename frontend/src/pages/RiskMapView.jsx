@@ -12,11 +12,21 @@ import { DemoBanner } from '../components/DemoBanner';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { MapDetailPanel } from '../components/map/MapDetailPanel';
 import { useEntityDrawer } from '../context/EntityDrawerContext';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
-import { formatRiskPercent } from '../lib/risk';
+import {
+  ERRORS,
+  LOADING,
+  METRICS_LINK_TEXT,
+  METRICS_URL,
+  NAV_LABELS,
+  SCRI_BADGE,
+  SCRI_TOOLTIP,
+} from '../lib/uiCopy';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -54,7 +64,7 @@ export function RiskMapView() {
     return undefined;
   }, [latParam, lonParam]);
 
-  const { data, isLoading, isError } = useQuery(
+  const { data, isLoading, isError, refetch } = useQuery(
     ['map-layers', entityType, toggles.zones, toggles.routes, toggles.events],
     () =>
       fetchMapLayers({
@@ -105,38 +115,32 @@ export function RiskMapView() {
   }, [highlightId, layers, entityType, openEntity]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
 
-      <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-              Geopolitical Intelligence
-            </p>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/25">
-              {methodology?.index_name ?? 'SCRI'} · 0–100
-            </span>
-          </div>
-          <h1 className="page-title">Interactive World Map</h1>
-          <p className="mt-2 text-slate-400 max-w-2xl">
-            What is happening, where, why it matters, who is affected, and how disruption propagates through your network.
-          </p>
-          <a
-            href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-400 hover:text-blue-300"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            SCRI methodology & references
-          </a>
-        </div>
-        <Link to="/simulate" className="btn-primary shrink-0">
-          <Play className="h-4 w-4" />
-          Run scenario on map
-        </Link>
-      </header>
+      <PageHeader
+        eyebrow="Geopolitical intelligence"
+        title={NAV_LABELS.map}
+        subtitle="What is happening, where, why it matters, who is affected, and how disruption propagates through your network."
+        badges={[SCRI_BADGE]}
+        gradient="blue"
+        actions={
+          <Link to="/simulate" className="btn-primary shrink-0">
+            <Play className="h-4 w-4" />
+            Run scenario on map
+          </Link>
+        }
+      >
+        <a
+          href={METRICS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          {METRICS_LINK_TEXT}
+        </a>
+      </PageHeader>
 
       {/* Controls */}
       <div className="flex flex-col sm:flex-row flex-wrap gap-4">
@@ -174,14 +178,12 @@ export function RiskMapView() {
       </div>
 
       {isError && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300 text-sm" role="alert">
-          Failed to load map intelligence layers. Ensure API and Neo4j are running, then run <code>make seed-all</code>.
-        </div>
+        <ErrorBanner message={ERRORS.map} onRetry={() => refetch()} />
       )}
-      {isLoading && <LoadingState label="Loading global risk layers…" />}
+      {isLoading && <LoadingState label={LOADING.map} />}
 
       {!isLoading && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 min-h-[480px]">
             <InteractiveWorldMap
               layers={layers}
@@ -199,7 +201,7 @@ export function RiskMapView() {
       )}
 
       {/* Executive strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
           { label: 'Conflict zones', val: layers.conflict_zones?.metadata?.count ?? 0 },
           { label: 'Active events', val: layers.events?.metadata?.count ?? 0 },
@@ -218,7 +220,7 @@ export function RiskMapView() {
 
       <Panel
         title="High SCRI entities"
-        subtitle="XGBoost + SHAP supplier scores · click map markers for drill-down"
+        subtitle="Modelled index from XGBoost + SHAP · click map markers for drill-down"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-64 overflow-y-auto">
           {(layers.entities?.features ?? layers.entities?.[entityType]?.features ?? [])
@@ -240,11 +242,7 @@ export function RiskMapView() {
                       SCRI
                       <MetricTooltip
                         label="SCRI"
-                        definition={kpiDefinition(
-                          methodology,
-                          'peak_scri',
-                          'Supply Chain Risk Index — 0–100% supplier disruption exposure from XGBoost + SHAP.',
-                        )}
+                        definition={kpiDefinition(methodology, 'peak_scri', SCRI_TOOLTIP)}
                         reference="docs/METRICS.md"
                       />
                     </p>
@@ -256,6 +254,8 @@ export function RiskMapView() {
             ))}
         </div>
       </Panel>
+
+      <PageFooterNote />
     </div>
   );
 }

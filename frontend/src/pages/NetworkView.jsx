@@ -4,12 +4,14 @@ import { GitBranch, Network, RefreshCw, Share2 } from 'lucide-react';
 import { fetchNetwork } from '../api/client';
 import { NetworkGraph } from '../components/NetworkGraph';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
 import { dedupeNetworkNodes, normalizeNodeType, resolveNodeRiskScore } from '../lib/networkUtils';
 import { formatRiskPercent } from '../lib/risk';
+import { ERRORS, LOADING, NAV_LABELS } from '../lib/uiCopy';
 
 export function NetworkView() {
   const [selectedNode, setSelectedNode] = useState(null);
@@ -35,15 +37,15 @@ export function NetworkView() {
     [networkData?.edges],
   );
 
-  if (isLoading) return <LoadingState label="Building supply graph…" />;
+  if (isLoading) return <LoadingState label={LOADING.network} />;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
 
       <PageHeader
         eyebrow="Knowledge graph"
-        title="Supply Chain Graph"
+        title={NAV_LABELS.network}
         subtitle="Interactive network — suppliers, ports, chokepoints, and linked events with modelled SCRI where available."
         badges={['Neo4j · BFS depth 2']}
         gradient="violet"
@@ -56,13 +58,11 @@ export function NetworkView() {
       />
 
       {isError && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300 text-sm">
-          Could not load graph — ensure Neo4j is running and seeded.
-        </div>
+        <ErrorBanner message={ERRORS.network} onRetry={() => refetch()} />
       )}
 
       {networkData?.metadata && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
             { label: 'Nodes', val: nodes.length, icon: Network },
             { label: 'Edges', val: networkData.metadata.total_edges, icon: Share2 },
@@ -82,9 +82,9 @@ export function NetworkView() {
       )}
 
       {nodes.length > 0 && (
-        <div className="glass-panel p-5 sm:p-6 overflow-hidden">
+        <Panel title="Supply graph" subtitle="Interactive force-directed view · click nodes below for detail">
           <NetworkGraph nodes={nodes} edges={edges} />
-        </div>
+        </Panel>
       )}
 
       <Panel title="Network entities" subtitle={`${nodes.length} unique nodes · deduplicated by ID`}>
@@ -160,6 +160,8 @@ export function NetworkView() {
           </dl>
         </Panel>
       )}
+
+      <PageFooterNote />
     </div>
   );
 }

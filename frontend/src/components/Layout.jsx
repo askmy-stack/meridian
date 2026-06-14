@@ -17,18 +17,19 @@ import {
   X,
 } from 'lucide-react';
 import { useApiHealth } from '../hooks/useApiHealth';
+import { NAV_LABELS } from '../lib/uiCopy';
 import { ModelStatusBanner } from './ModelStatusBanner';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Command Center', icon: BarChart3, end: true },
-  { to: '/network', label: 'Supply Graph', icon: Network },
-  { to: '/map', label: 'Risk Map', icon: Globe },
-  { to: '/timeline', label: 'Timeline', icon: Calendar },
-  { to: '/sectors', label: 'Sectors', icon: Layers },
-  { to: '/suppliers', label: 'Suppliers', icon: Factory },
-  { to: '/simulate', label: 'Simulator', icon: Play },
-  { to: '/copilot', label: 'Copilot', icon: Bot },
-  { to: '/alerts', label: 'Alerts', icon: AlertTriangle },
+  { to: '/', label: NAV_LABELS.dashboard, icon: BarChart3, end: true },
+  { to: '/network', label: NAV_LABELS.network, icon: Network },
+  { to: '/map', label: NAV_LABELS.map, icon: Globe },
+  { to: '/timeline', label: NAV_LABELS.timeline, icon: Calendar },
+  { to: '/sectors', label: NAV_LABELS.sectors, icon: Layers },
+  { to: '/suppliers', label: NAV_LABELS.suppliers, icon: Factory },
+  { to: '/simulate', label: NAV_LABELS.simulate, icon: Play },
+  { to: '/copilot', label: NAV_LABELS.copilot, icon: Bot },
+  { to: '/alerts', label: NAV_LABELS.alerts, icon: AlertTriangle },
 ];
 
 function navClass({ isActive }) {
@@ -80,7 +81,7 @@ export function Layout() {
           <div className="p-4 border-t border-slate-800/80 space-y-3">
             <NavLink to="/ops/graph-health" className={navClass} onClick={() => setMobileOpen(false)}>
               <Radio className="h-4 w-4 shrink-0" />
-              Graph health
+              {NAV_LABELS.graphHealth}
             </NavLink>
             <div className="flex items-center gap-2 px-2">
               <Radio className={`h-3.5 w-3.5 ${live ? 'text-emerald-400' : 'text-amber-400'}`} />

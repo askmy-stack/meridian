@@ -7,18 +7,20 @@ import { COUNTRY_RISK_BY_SECTOR, SECTOR_PROFILES } from '../data/sectorIntellige
 import { DemoBanner } from '../components/DemoBanner';
 import { useEntityDrawer } from '../context/EntityDrawerContext';
 import { CountryPriceTable } from '../components/ui/CountryPriceTable';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
-import { PageHeader } from '../components/ui/PageHeader';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RegionRiskMap } from '../components/ui/RegionRiskMap';
 import { RiskBar, RiskListBody, RiskPill } from '../components/ui/RiskDisplay';
 import { SectorInfoPanel } from '../components/ui/SectorInfoPanel';
+import { DEMO_SECTOR_NOTE, ERRORS, LOADING, NAV_LABELS } from '../lib/uiCopy';
 
 export function SectorsView() {
   const { openEntity } = useEntityDrawer();
   const [activeSector, setActiveSector] = useState('semiconductors');
-  const { data, isLoading, isError } = useQuery(['sectors'], fetchSectorDashboard, {
+  const { data, isLoading, isError, refetch } = useQuery(['sectors'], fetchSectorDashboard, {
     staleTime: 120_000,
   });
 
@@ -26,15 +28,15 @@ export function SectorsView() {
   const selected = sectors.find((s) => s.sector === activeSector) || sectors[0];
   const countryData = COUNTRY_RISK_BY_SECTOR[activeSector] || [];
 
-  if (isLoading) return <LoadingState label="Loading sector dashboard…" />;
+  if (isLoading) return <LoadingState label={LOADING.sectors} />;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
 
       <PageHeader
         eyebrow="Portfolio analytics"
-        title="Sector Risk Dashboard"
+        title={NAV_LABELS.sectors}
         subtitle="Strategic sector exposure with regional price indices and human-impact context — modelled SCRI from XGBoost, regional bands are demo templates."
         badges={['Keyword taxonomy · demo']}
         gradient="violet"
@@ -47,13 +49,13 @@ export function SectorsView() {
       >
         <MetricTooltip
           label="Sector assignment"
-          definition="Suppliers grouped by keyword match on name and industry — demo taxonomy, not ML classification."
+          definition={DEMO_SECTOR_NOTE}
           reference="docs/LIMITATIONS.md"
         />
       </PageHeader>
 
       {isError && (
-        <p className="text-red-400 text-sm">Failed to load sector data. Ensure Neo4j is seeded.</p>
+        <ErrorBanner message={ERRORS.sectors} onRetry={() => refetch()} />
       )}
 
       <div className="flex flex-wrap gap-2">
@@ -159,6 +161,8 @@ export function SectorsView() {
             </button>
           ))}
       </div>
+
+      <PageFooterNote note="Regional price bands and sector taxonomy are demo templates — not ML classification." />
     </div>
   );
 }
