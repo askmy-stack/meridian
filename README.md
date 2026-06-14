@@ -5,16 +5,17 @@
 [![CI](https://github.com/askmy-stack/meridian/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/askmy-stack/meridian/actions/workflows/ci-cd.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**Geopolitical supply chain risk intelligence — live signals, a Neo4j knowledge graph, explainable risk scores, and disruption simulation.**
+**Supply Chain Risk Intelligence (SCRI)** — geopolitical signals, a Neo4j knowledge graph, explainable risk scores, and disruption simulation.
 
-> Map conflict, shipping, and weather signals to **your** suppliers before they hit production.
+> Every major supply chain disruption of the last 20 years was visible in open signals weeks before impact. Meridian connects GDELT, conflict, shipping, and weather data to **your** suppliers with honest calibration labels — band-first SCRI display, not false precision.
 
 <p align="center">
   <a href="docs/DEMO.md">
-    <img src="docs/assets/meridian-hero.svg" alt="Meridian — supply chain risk map, simulator, and copilot" width="920" />
+    <img src="docs/assets/meridian-demo.gif" alt="Meridian demo walkthrough" width="920"
+         onerror="this.onerror=null;this.src='docs/assets/meridian-hero.svg'" />
   </a>
   <br />
-  <sub>Record a walkthrough GIF → <code>docs/assets/meridian-demo.gif</code> · <a href="docs/DEMO.md">demo script</a></sub>
+  <sub>Record GIF: <code>bash scripts/record_demo.sh</code> · <a href="docs/DEMO.md">2-min demo script</a> · placeholder until recorded</sub>
 </p>
 
 **Repository:** [github.com/askmy-stack/meridian](https://github.com/askmy-stack/meridian)
@@ -25,23 +26,85 @@
 
 | Surface | What you get |
 |---------|----------------|
-| [**Command Center**](docs/DEMO.md) | KPIs, weekly digest, markdown export |
-| [**Risk map**](docs/DEMO.md) | MapLibre globe — conflict zones, trade routes, events, NOAA weather, sanctions |
-| [**Simulator**](docs/DEMO.md) | Six geopolitical presets · BFS propagation · 1,000-run Monte Carlo · side-by-side compare |
-| [**Copilot**](docs/DEMO.md) | Natural language → scenario + supplier context |
-| [**Sectors**](docs/DEMO.md) | Semiconductor, energy, automotive, shipping roll-ups |
-| [**Alerts**](docs/DEMO.md) | Tiered feed, test emit, map deep links, persistent history |
-| [**Pipeline**](docs/QUICKSTART.md#5-live-pipeline-gdelt--kafka--neo4j) | GDELT → Kafka → Neo4j → entity links → alerts |
+| [**Command Center**](docs/DEMO.md) | KPIs, ModelStatusBanner, weekly digest, markdown export |
+| [**Risk map**](docs/DEMO.md) | MapLibre globe — conflict zones, trade routes, NOAA weather, sanctions |
+| [**Simulator**](docs/DEMO.md) | Six presets · BFS propagation · Monte Carlo p10/p50/p90 bands |
+| [**Copilot**](docs/DEMO.md) | Graph-grounded Q&A with uncertainty fallback |
+| [**Graph health**](docs/DEMO.md) | Tier-2 coverage, completeness score, model calibration |
+| [**Alerts**](docs/DEMO.md) | Tiered feed, causal association badges, map deep links |
 
-📖 [**Quickstart (5 min)**](docs/QUICKSTART.md) · 🎬 [**Demo script (2–3 min)**](docs/DEMO.md) · 🤝 [**Contributing**](CONTRIBUTING.md)
+📖 [**Quickstart**](docs/QUICKSTART.md) · 🎬 [**Demo script**](docs/DEMO.md) · ⚠️ [**Limitations**](docs/LIMITATIONS.md) · 🚀 [**Deploy**](docs/DEPLOY_QUICKSTART.md)
 
 ---
 
-## Why Meridian
+## Quick start (portfolio demo)
 
-Major disruptions — Suez, Red Sea, Taiwan Strait, Ukraine — showed up first in **open signals** (GDELT, AIS, ACLED), not in quarterly supplier reviews.
+### Prerequisites
 
-Meridian connects those signals to suppliers, ports, and chokepoints in Neo4j, scores exposure with explainable ML, and lets you **simulate** impact before it lands on the P&L.
+| Tool | Version |
+|------|---------|
+| Python | 3.11 or 3.12 |
+| Docker | Latest (Neo4j) |
+| Node.js | 20+ (frontend) |
+
+```bash
+git clone https://github.com/askmy-stack/meridian.git
+cd meridian
+cp .env.example .env
+# NEO4J_URI=bolt://localhost:7688  (host port from docker-compose.yml)
+
+docker compose up -d neo4j
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+set -a && source .env && set +a
+
+make portfolio-ready   # WGI fetch → train model → seed → score → export
+```
+
+**Terminal 1 — API**
+
+```bash
+make dev               # uvicorn on :8002
+```
+
+**Terminal 2 — Frontend**
+
+```bash
+make dev-frontend      # Vite on :5173
+```
+
+Open **http://localhost:5173**
+
+| URL | Service |
+|-----|---------|
+| http://localhost:5173 | Dashboard |
+| http://localhost:8002/docs | API |
+| http://localhost:7475 | Neo4j Browser |
+
+### ERP tier-N demo (optional)
+
+```bash
+make seed-all
+python scripts/ingest_erp_csv.py data/sample_erp_tiers.csv
+# or: make seed-erp
+```
+
+### Batch pipeline (no Kafka)
+
+Laptop-friendly refresh without streaming infra:
+
+```bash
+make pipeline-batch    # demo scenarios + rescore suppliers
+```
+
+See [`docs/ARCHITECTURE_DEMO.md`](docs/ARCHITECTURE_DEMO.md).
+
+### One-shot bootstrap
+
+```bash
+make demo              # scripts/demo.sh — infra + seed + unit tests
+make check-deploy      # validate Vercel/Railway config files
+```
 
 ---
 
@@ -62,54 +125,10 @@ Details: [ARCHITECTURE.md](ARCHITECTURE.md) · Decisions: [DECISIONS.md](DECISIO
 
 ---
 
-## Quickstart
-
-### Prerequisites
-
-| Tool | Version |
-|------|---------|
-| Python | 3.11 or 3.12 |
-| Docker | Latest |
-| Node.js | 20+ (frontend) |
-
-### Run locally
+## Live ingestion (optional)
 
 ```bash
-git clone https://github.com/askmy-stack/meridian.git
-cd meridian
-cp .env.example .env
-
-# Neo4j bolt is on host port 7688 (see docker-compose.yml)
-# NEO4J_URI=bolt://localhost:7688
-
-docker compose up -d neo4j kafka zookeeper
-
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-set -a && source .env && set +a
-
-make seed-all
-# If `python3` lacks deps: PY=/path/to/venv/bin/python make seed-all
-
-# Terminal 1
-uvicorn src.api.main:app --reload --port 8002
-
-# Terminal 2
-cd frontend && npm install && npm run dev
-```
-
-| URL | Service |
-|-----|---------|
-| http://localhost:5173 | Dashboard |
-| http://localhost:8002/docs | API |
-| http://localhost:7475 | Neo4j Browser |
-| http://localhost:8081 | Kafka UI |
-
-One-shot bootstrap: `make demo` ([`scripts/demo.sh`](scripts/demo.sh))
-
-### Live ingestion
-
-```bash
+docker compose up -d kafka zookeeper
 make ingest-gdelt          # GDELT → meridian.gdelt.* topics
 make load-graph            # Kafka → Neo4j :Event nodes
 make pipeline-refresh      # publish + load + entity resolution + alerts
@@ -127,7 +146,7 @@ Topic convention: `meridian.{source}.{event_type}`
 | Graph | Neo4j 5 |
 | API | FastAPI, JWT, structlog |
 | ML | XGBoost, SHAP, MLflow-tracked training |
-| Frontend | React 18, Vite, MapLibre / optional Mapbox, Recharts |
+| Frontend | React 18, Vite, MapLibre, Recharts |
 | CI | GitHub Actions (Neo4j + pytest + frontend build) |
 
 ---
@@ -136,18 +155,12 @@ Topic convention: `meridian.{source}.{event_type}`
 
 ```
 meridian/
-├── src/
-│   ├── producers/          # GDELT, ACLED, AIS → Kafka
-│   ├── consumers/          # Graph loader, entity resolution
-│   ├── api/                # FastAPI (map, sim, copilot, alerts, analytics)
-│   ├── graph/              # Neo4j client
-│   ├── simulation/         # BFS + Monte Carlo
-│   ├── geopolitical/       # Conflict zones, supplemental layers
-│   └── alerting/           # Slack + file-backed persistence
-├── frontend/               # React dashboard (9 routes)
-├── scripts/                # Seeds, pipeline_refresh.py, demo.sh
+├── src/                    # producers, consumers, api, graph, simulation
+├── frontend/               # React dashboard (11 routes)
+├── scripts/                # portfolio-ready, train, seed, pipeline_batch
+├── data/                   # disruption_labels.csv, sample ERP tiers, WGI cache
 ├── tests/                  # pytest (unit + integration)
-└── docs/                   # QUICKSTART, DEMO, assets
+└── docs/                   # DEMO, LIMITATIONS, DEPLOY_QUICKSTART
 ```
 
 ---
@@ -159,8 +172,11 @@ meridian/
 | [GDELT](https://www.gdeltproject.org/) | Global news events |
 | [ACLED](https://acleddata.com/) | Armed conflict (academic key) |
 | [AISHub](https://www.aishub.net/) | Vessel tracking |
+| World Bank WGI | Political stability (`make fetch-wgi`) |
 | NOAA / NASA FIRMS | Weather & disasters |
 | OpenSanctions | Sanctions entities |
+
+Training labels: `data/disruption_labels.csv` — 50+ public disruption case studies (Suez 2021, Fukushima, Taiwan earthquake, Red Sea, COVID lockdowns, etc.)
 
 ---
 

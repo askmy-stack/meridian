@@ -1,7 +1,8 @@
 {
+  "fetched_at": "2026-06-14T17:57:05.089654+00:00",
   "indicator": "PV.EST",
   "indicator_name": "Political Stability and Absence of Violence/Terrorism",
-  "fetched_at": "2026-06-14T00:00:00+00:00",
+  "live_count": 0,
   "scores": {
     "AE": 0.72,
     "AU": 0.89,
@@ -51,6 +52,5 @@
     "US": "static_fallback",
     "VN": "static_fallback",
     "ZA": "static_fallback"
-  },
-  "live_count": 0
+  }
 }

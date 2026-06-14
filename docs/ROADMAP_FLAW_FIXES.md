@@ -50,8 +50,16 @@ Maps 24 critique flaws to remediation chunks. **Chunk 1 (this PR)** covers P0/P1
 ## Remaining partial items
 
 - **Flaw #20:** Live AIS ingest into SCRI features (demo stub only)
-- **Flaw #17:** Actual Railway/Vercel deploy execution (config shipped in chunk2)
-- **Flaw #21:** Record `meridian-demo.gif` (instructions shipped in chunk2)
+- **Flaw #17:** Actual Railway/Vercel deploy execution (config shipped — run `vercel link` + `railway up` per DEPLOY_QUICKSTART)
+- **Flaw #21:** Record `meridian-demo.gif` (script shipped: `scripts/record_demo.sh`; placeholder hero until recorded)
+
+## Session 11 (PR #13 — portfolio demo ready)
+
+- `data/disruption_labels.csv` expanded to 50+ public case-study rows
+- `make portfolio-ready`, `fetch-wgi`, `seed-erp`, `pipeline-batch`, `check-deploy`
+- README portfolio polish + updated `docs/DEMO.md` (GraphHealth, pillars, batch path)
+- `scripts/record_demo.sh`, `scripts/check_deploy_config.sh`
+- `frontend/.env.example` + `VITE_API_URL` alias in API client
 
 ## Chunk 1 deliverables (PR #9)
 

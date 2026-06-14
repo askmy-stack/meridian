@@ -18,7 +18,10 @@ def test_slugify_supplier_name() -> None:
 def test_load_disruption_labels_from_repo_csv() -> None:
     labels_path = Path(__file__).resolve().parents[2] / "data" / "disruption_labels.csv"
     labels = load_disruption_labels(labels_path)
-    assert len(labels) >= 20
+    assert len(labels) >= 25
+    # Repo ships 50+ labeled rows aggregated across suppliers
+    row_count = sum(1 for _ in labels_path.open(encoding="utf-8")) - 1
+    assert row_count >= 50
     assert labels["taiwan-semiconductor-corp"] == 1
     assert labels["seoul-precision-parts"] == 0
 

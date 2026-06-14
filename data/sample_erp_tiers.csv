@@ -1,11 +1,26 @@
 parent_supplier_id,child_supplier_id,tier,notes
-detroit-motors-supply,acme-electronics-ltd,2,Auto OEM → tier-2 electronics
-detroit-motors-supply,shanghai-manufacturing-co,2,Auto OEM → tier-2 assembly
-taiwan-semiconductor-corp,acme-electronics-ltd,2,Fab → downstream packaging
-taiwan-semiconductor-corp,seoul-precision-parts,2,Chip supply → precision parts
-rotterdam-components,hamburg-industrial-gmbh,2,EU distribution hub
-singapore-precision-pte,ho-chi-minh-assembly,2,ASEAN contract manufacturing
-singapore-precision-pte,bangkok-components,2,ASEAN components
-dubai-logistics-hub,istanbul-manufacturing,2,Gulf logistics → Turkey mfg
+detroit-motors-supply,acme-electronics-ltd,2,Auto OEM → tier-2 electronics (Shenzhen)
+detroit-motors-supply,shanghai-manufacturing-co,2,Auto OEM → tier-2 assembly (Shanghai)
+detroit-motors-supply,taiwan-semiconductor-corp,2,Auto OEM → tier-1 chip supplier
+taiwan-semiconductor-corp,acme-electronics-ltd,2,Fab → downstream packaging customer
+taiwan-semiconductor-corp,seoul-precision-parts,2,Chip supply → precision parts OEM
+taiwan-semiconductor-corp,singapore-precision-pte,2,Fab → ASEAN distribution hub
+rotterdam-components,hamburg-industrial-gmbh,2,EU distribution hub → German industrial
+rotterdam-components,warsaw-electronics,2,Rotterdam port → Eastern EU electronics
+singapore-precision-pte,ho-chi-minh-assembly,2,ASEAN contract manufacturing (Vietnam)
+singapore-precision-pte,bangkok-components,2,ASEAN components (Thailand)
+singapore-precision-pte,manila-electronics,2,ASEAN electronics (Philippines)
+singapore-precision-pte,jakarta-industrial,2,ASEAN industrial (Indonesia)
+dubai-logistics-hub,istanbul-manufacturing,2,Gulf logistics → Turkey manufacturing
+dubai-logistics-hub,tel-aviv-electronics,2,Gulf hub → Israel electronics export
+dubai-logistics-hub,cairo-manufacturing,2,Gulf hub → Egypt manufacturing
+hamburg-industrial-gmbh,detroit-motors-supply,2,EU components → US auto OEM (transatlantic)
 acme-electronics-ltd,shenzhen-sub-tier-demo,3,Electronics tier-3 stub (creates node)
-shanghai-manufacturing-co,mumbai-chemicals-ltd,3,Chemicals tier-3 link
+shanghai-manufacturing-co,mumbai-chemicals-ltd,3,Chemicals tier-3 link (raw materials)
+bangkok-components,ho-chi-minh-assembly,3,Thailand components → Vietnam assembly
+johannesburg-mining-tech,nairobi-logistics,2,Mining tech → East Africa logistics
+los-angeles-logistics,mexico-city-assembly,2,US West Coast hub → Mexico nearshoring
+houston-chemicals,sao-paulo-manufacturing,2,Gulf chemicals → Brazil manufacturing
+toronto-components,detroit-motors-supply,2,Canada components → US auto supply chain
+melbourne-logistics,singapore-precision-pte,2,APAC logistics → Singapore hub
+bangalore-tech-solutions,mumbai-chemicals-ltd,2,India IT → chemicals supplier (tier-2)

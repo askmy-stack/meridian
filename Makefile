@@ -1,4 +1,5 @@
-.PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo
+.PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo \
+	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy
 
 PY ?= python3
 PIP ?= pip
@@ -92,13 +93,39 @@ pipeline-refresh:  ## GDELT + ACLED + AIS → Kafka → Neo4j → entity links �
 	$(PY) scripts/pipeline_refresh.py
 
 train-risk:  ## Train XGBoost risk model with MLflow tracking
-	$(PY) scripts/train_risk_model.py
+	MLFLOW_TRACKING_URI=file:./mlruns $(PY) scripts/train_risk_model.py
 
 score-suppliers:  ## Score all suppliers and write risk_score to Neo4j
 	$(PY) scripts/score_suppliers.py
 
 export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
 	$(PY) scripts/export_graph_snapshots.py
+
+fetch-wgi:  ## Fetch World Bank WGI stability scores → data/wgi_stability.json
+	$(PY) scripts/fetch_wgi_stability.py
+
+seed-erp:  ## Ingest tier-N supplier edges from sample ERP CSV
+	$(PY) scripts/ingest_erp_csv.py data/sample_erp_tiers.csv
+
+pipeline-batch:  ## Refresh demo data without Kafka (PIPELINE_MODE=batch)
+	PIPELINE_MODE=batch $(PY) scripts/pipeline_batch.py
+
+portfolio-ready:  ## Full portfolio bootstrap: WGI → train → seed → score → export
+	@echo "=== portfolio-ready: sequential demo bootstrap ==="
+	@echo "Step 1/5 fetch-wgi"
+	@$(MAKE) fetch-wgi
+	@echo "Step 2/5 train-risk"
+	@$(MAKE) train-risk
+	@echo "Step 3/5 seed-all (requires Neo4j — skip if unavailable)"
+	-@$(MAKE) seed-all
+	@echo "Step 4/5 score-suppliers (requires Neo4j — skip if unavailable)"
+	-@$(MAKE) score-suppliers
+	@echo "Step 5/5 export-snapshots (requires Neo4j — skip if unavailable)"
+	-@$(MAKE) export-snapshots
+	@echo "portfolio-ready complete — see README Quick start"
+
+check-deploy:  ## Validate deploy config files exist
+	bash scripts/check_deploy_config.sh
 
 demo:  ## Bootstrap infra, seed data, and run unit tests for portfolio demo
 	bash scripts/demo.sh

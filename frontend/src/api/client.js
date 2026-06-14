@@ -6,7 +6,10 @@
  */
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  '/api';
 
 export const apiClient = axios.create({
   baseURL,
@@ -153,7 +156,10 @@ export async function fetchGraphHealth() {
 }
 
 export function getDigestExportUrl() {
-  const base = import.meta.env.VITE_API_BASE_URL || '/api';
+  const base =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_API_URL ||
+    '/api';
   return `${base}/analytics/export/digest.md`;
 }
 
