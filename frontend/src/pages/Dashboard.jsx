@@ -32,7 +32,9 @@ import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
-import { riskColor, riskPillClass } from '../lib/risk';
+import { RiskBar, RiskListBody, RiskPill } from '../components/ui/RiskDisplay';
+import { calibrationSublabel } from '../hooks/useMethodology';
+import { riskColor } from '../lib/risk';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -53,6 +55,8 @@ export function Dashboard() {
   const stats = statsQuery.data;
   const digest = digestQuery.data;
   const methodology = methodologyQuery.data;
+  const calLabel = calibrationSublabel(methodology);
+  const scriLimitations = methodology?.limitations;
   const topRisks = digest?.top_risks ?? [];
   const criticalCount = topRisks.filter((r) => r.risk_category === 'CRITICAL').length;
 
@@ -158,7 +162,8 @@ export function Dashboard() {
                 'critical_risks',
                 'Suppliers with SCRI ≥ 0.75 per XGBoost + SHAP model.'
               )}
-              reference="Wagner & Bode supply chain vulnerability"
+              limitations={scriLimitations}
+              reference="docs/LIMITATIONS.md"
             />
           }
         />
@@ -288,30 +293,21 @@ export function Dashboard() {
               <Link
                 key={risk.supplier_id}
                 to={`/suppliers?highlight=${encodeURIComponent(risk.supplier_id)}`}
-                className="flex items-center gap-4 p-4 rounded-xl border border-slate-700/40 hover:border-blue-500/30 hover:bg-slate-800/30 transition-all"
+                className="risk-list-row border-slate-700/40 hover:border-blue-500/30 hover:bg-slate-800/30"
               >
-                <span className="text-2xl font-bold text-slate-600 w-8 tabular-nums">#{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white truncate">{risk.name}</p>
-                  <div className="mt-2 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all"
-                      style={{
-                        width: `${(risk.risk_score ?? 0) * 100}%`,
-                        backgroundColor: riskColor(risk.risk_score),
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-white tabular-nums">
-                    {Math.round((risk.risk_score ?? 0) * 100)}
-                  </p>
-                  <p className="text-[10px] text-slate-500 uppercase">SCRI</p>
-                </div>
-                <span className={`risk-pill shrink-0 ${riskPillClass(risk.risk_score)}`}>
-                  {risk.risk_category}
+                <span className="text-xl sm:text-2xl font-bold text-slate-600 w-7 sm:w-8 tabular-nums shrink-0">
+                  #{i + 1}
                 </span>
+                <RiskListBody title={risk.name} score={risk.risk_score} />
+                <div className="flex flex-col items-end gap-0.5 shrink-0 min-w-[2.75rem] sm:min-w-[3rem]">
+                  <RiskPill
+                    score={risk.risk_score}
+                    variant="category"
+                    label={risk.risk_category}
+                    size="sm"
+                    calibrationLabel={calLabel}
+                  />
+                </div>
               </Link>
             ))}
           </div>

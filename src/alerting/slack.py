@@ -62,6 +62,7 @@ class Alert:
     causal_method: Optional[str] = None
     causal_effect_size: Optional[float] = None
     causal_disclaimer: Optional[str] = None
+    causal_sample_count: Optional[int] = None
     
     # Metadata
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
@@ -83,6 +84,7 @@ class Alert:
             "causal_method": self.causal_method,
             "causal_effect_size": self.causal_effect_size,
             "causal_disclaimer": self.causal_disclaimer,
+            "causal_sample_count": self.causal_sample_count,
             "timestamp": self.timestamp
         }
     

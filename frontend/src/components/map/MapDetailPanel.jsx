@@ -1,6 +1,7 @@
 import { AlertTriangle, Globe, Info, MapPin, Ship, Users } from 'lucide-react';
 import { MetricTooltip } from '../ui/MetricTooltip';
-import { riskColor, riskLabel, riskPillClass } from '../../lib/risk';
+import { RiskBar, RiskPill } from '../ui/RiskDisplay';
+import { formatRiskPercent } from '../../lib/risk';
 
 /**
  * Side panel for map drill-down — explains what / where / why / who / impact.
@@ -38,15 +39,10 @@ export function MapDetailPanel({ feature, onClose }) {
                 reference="docs/METRICS.md"
               />
             </span>
-            <span className={`risk-pill text-xs shrink-0 ${riskPillClass(score)}`}>{riskLabel(score)}</span>
+            <RiskPill score={score} variant="category" size="sm" />
           </div>
-          <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${score * 100}%`, backgroundColor: riskColor(score) }}
-            />
-          </div>
-          <p className="text-2xl font-bold text-white mt-2">{Math.round(score * 100)}%</p>
+          <RiskBar score={score} />
+          <p className="text-2xl font-bold text-white mt-2 tabular-nums">{formatRiskPercent(score)}%</p>
         </div>
       )}
 

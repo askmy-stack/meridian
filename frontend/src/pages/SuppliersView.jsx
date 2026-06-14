@@ -6,7 +6,9 @@ import { DemoBanner } from '../components/DemoBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
-import { riskColor, riskPillClass } from '../lib/risk';
+import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
+import { calibrationSublabel, useMethodology } from '../hooks/useMethodology';
+import { riskColor, formatRiskPercent, riskLabel } from '../lib/risk';
 
 const FORECAST_HORIZONS = [7, 14, 30];
 
@@ -26,6 +28,8 @@ export function SuppliersView() {
     () => fetchSupplierForecast(selectedId, forecastHorizon),
     { enabled: Boolean(selectedId) },
   );
+  const { data: methodology } = useMethodology();
+  const calLabel = calibrationSublabel(methodology);
 
   const suppliers = (suppliersQuery.data?.suppliers ?? []).filter(
     (s) =>
@@ -63,23 +67,24 @@ export function SuppliersView() {
                 key={s.id}
                 type="button"
                 onClick={() => setSelectedId(s.id)}
-                className={`w-full text-left p-3 rounded-xl border transition-all ${
+                className={`risk-list-row ${
                   selectedId === s.id
                     ? 'border-blue-500/50 bg-blue-500/10'
                     : 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/30'
                 }`}
               >
-                <div className="flex justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium text-white truncate">{s.name}</p>
-                    <p className="text-xs text-slate-500">{s.country_iso} · {s.city}</p>
-                  </div>
+                <div className="risk-list-body min-w-0">
+                  <p className="risk-list-title">{s.name}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    {s.country_iso} · {s.city}
+                  </p>
                   {s.risk_score != null && (
-                    <span className={`risk-pill shrink-0 ${riskPillClass(s.risk_score)}`}>
-                      {Math.round(s.risk_score * 100)}%
-                    </span>
+                    <RiskBar score={s.risk_score} className="mt-1.5 sm:mt-2 md:hidden" />
                   )}
                 </div>
+                {s.risk_score != null && (
+                  <RiskPill score={s.risk_score} size="sm" calibrationLabel={calLabel} />
+                )}
               </button>
             ))}
           </div>
@@ -99,19 +104,38 @@ export function SuppliersView() {
           {selectedId && explanationQuery.isLoading && <LoadingState />}
           {explanationQuery.data && (
             <div className="space-y-6">
-              <div className="flex items-end gap-4">
-                <p className="text-5xl font-bold" style={{ color: riskColor(explanationQuery.data.risk_score) }}>
-                  {Math.round(explanationQuery.data.risk_score * 100)}%
-                </p>
-                <span className={`risk-pill mb-2 ${riskPillClass(explanationQuery.data.risk_score)}`}>
-                  {explanationQuery.data.risk_category}
-                </span>
+              <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+                <div>
+                  <p
+                    className="text-4xl sm:text-5xl font-bold tabular-nums"
+                    style={{ color: riskColor(explanationQuery.data.risk_score) }}
+                  >
+                    {riskLabel(explanationQuery.data.risk_score)}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {formatRiskPercent(explanationQuery.data.risk_score)}% modelled index · {calLabel}
+                  </p>
+                </div>
+                <RiskPill
+                  score={explanationQuery.data.risk_score}
+                  variant="category"
+                  label={explanationQuery.data.risk_category}
+                  size="sm"
+                  calibrationLabel={calLabel}
+                  className="mb-1"
+                />
                 <MetricTooltip
                   label="SCRI"
-                  definition="Supply Chain Risk Index — normalized 0–100% supplier disruption exposure."
-                  reference="docs/METRICS.md"
+                  definition="Supply Chain Risk Index — band-first modelled disruption exposure (0–100% secondary)."
+                  limitations={methodology?.limitations}
+                  reference="docs/LIMITATIONS.md"
                 />
               </div>
+              {explanationQuery.data.feature_provenance && (
+                <p className="text-xs text-amber-200/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                  Data quality: {explanationQuery.data.feature_provenance.summary} — see docs/LIMITATIONS.md
+                </p>
+              )}
               <div className="space-y-3">
                 {(explanationQuery.data.explanations ?? []).map((item) => (
                   <div key={item.feature} className="p-4 rounded-xl bg-slate-900/50 border border-slate-700/50">
@@ -121,9 +145,9 @@ export function SuppliersView() {
                         {item.direction === 'increases' ? '↑ SCRI' : '↓ SCRI'}
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="risk-bar mt-2">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-500 to-violet-500 rounded-full"
+                        className="risk-bar-fill bg-gradient-to-r from-blue-500 to-violet-500"
                         style={{ width: `${Math.min(Math.abs(item.contribution) * 100, 100)}%` }}
                       />
                     </div>
@@ -159,12 +183,23 @@ export function SuppliersView() {
                 </div>
                 {forecastQuery.isLoading && <LoadingState label="Loading forecast…" />}
                 {forecastQuery.data && (
-                  <p className="text-3xl font-bold text-white">
-                    {Math.round((forecastQuery.data.predicted_risk_score ?? 0) * 100)}%
-                    <span className="text-sm font-normal text-slate-500 ml-2">
-                      projected · {forecastQuery.data.model === 'tgn' ? 'TGN' : 'LSTM'}
+                  <>
+                    <span
+                      className={`inline-flex text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border mb-2 ${
+                        forecastQuery.data.model === 'tgn'
+                          ? 'border-violet-500/40 text-violet-300 bg-violet-500/10'
+                          : 'border-amber-500/40 text-amber-300 bg-amber-500/10'
+                      }`}
+                    >
+                      {forecastQuery.data.model === 'tgn'
+                        ? 'Research track · TGN'
+                        : 'Research track · LSTM fallback'}
                     </span>
-                  </p>
+                    <p className="text-3xl font-bold text-white">
+                      {Math.round((forecastQuery.data.predicted_risk_score ?? 0) * 100)}%
+                      <span className="text-sm font-normal text-slate-500 ml-2">projected band path</span>
+                    </p>
+                  </>
                 )}
               </div>
 

@@ -222,18 +222,20 @@ export function SimulationView() {
             title={`Impact: ${result.scenario?.name}`}
             subtitle="BFS propagation + Monte Carlo · complements SCRI point scores"
           >
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
               {[
                 {
                   icon: Users,
                   label: 'Suppliers hit',
                   val: result.propagation?.suppliers_affected ?? 0,
+                  sub: null,
                   tooltip: null,
                 },
                 {
                   icon: TrendingDown,
                   label: 'Revenue at risk',
                   val: `$${Number(result.propagation?.revenue_at_risk ?? 0).toLocaleString()}`,
+                  sub: null,
                   tooltip: (
                     <MetricTooltip
                       label="Revenue at risk"
@@ -246,6 +248,7 @@ export function SimulationView() {
                   icon: ShieldAlert,
                   label: 'Disruption prob.',
                   val: `${((result.monte_carlo?.disruption_probability ?? 0) * 100).toFixed(1)}%`,
+                  sub: null,
                   tooltip: (
                     <MetricTooltip
                       label="Disruption probability"
@@ -260,20 +263,35 @@ export function SimulationView() {
                 },
                 {
                   icon: Clock,
-                  label: 'Recovery est.',
-                  val: `${result.propagation?.recovery_time_days ?? 0}d`,
+                  label: 'Delay band (p10–p90)',
+                  val: `${result.monte_carlo?.p10_delay_days ?? 0}–${result.monte_carlo?.p90_delay_days ?? 0}d`,
+                  sub: `p50 ${result.monte_carlo?.p50_delay_days ?? 0}d`,
                   tooltip: (
                     <MetricTooltip
-                      label="Expected delay"
-                      definition="Mean simulated delay across Monte Carlo iterations."
+                      label="Delay percentiles"
+                      definition="Monte Carlo delay distribution — p10/p50/p90 days across disrupted iterations (not a single point estimate)."
                       reference="docs/METRICS.md#monte-carlo-financial-exposure"
                     />
                   ),
                 },
-              ].map(({ icon: Icon, label, val, tooltip }) => (
+                {
+                  icon: Clock,
+                  label: 'Recovery est.',
+                  val: `${result.propagation?.recovery_time_days ?? 0}d`,
+                  sub: null,
+                  tooltip: (
+                    <MetricTooltip
+                      label="Graph recovery"
+                      definition="BFS propagation recovery estimate from knowledge graph — complements MC bands."
+                      reference="docs/METRICS.md#propagation-impact"
+                    />
+                  ),
+                },
+              ].map(({ icon: Icon, label, val, sub, tooltip }) => (
                 <div key={label} className="stat-card text-center py-4">
                   <Icon className="h-5 w-5 text-blue-400 mx-auto mb-2" aria-hidden />
                   <p className="text-2xl font-bold text-white">{val}</p>
+                  {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
                   <p className="text-xs text-slate-500 mt-1 inline-flex items-center justify-center gap-0.5">
                     {label}
                     {tooltip}
@@ -283,7 +301,8 @@ export function SimulationView() {
             </div>
             <p className="text-sm text-slate-400">
               Monte Carlo: {result.monte_carlo?.iterations ?? 1000} iterations · Expected duration{' '}
-              {result.monte_carlo?.expected_duration_days ?? 0} days · Timeline projection{' '}
+              {result.monte_carlo?.expected_duration_days ?? 0} days (mean of disrupted runs) · Revenue band p50 $
+              {Number(result.monte_carlo?.p50_revenue_at_risk ?? 0).toLocaleString()} · Timeline projection{' '}
               {result.map_overlay?.timeline_projection_days ?? 0} days to baseline recovery.
               {result.impact_summary?.headline && (
                 <span className="block mt-2 text-slate-300">{result.impact_summary.headline}</span>
@@ -292,10 +311,7 @@ export function SimulationView() {
           </Panel>
 
           {result.map_overlay && (
-            <Panel
-              title="Propagation on map"
-              subtitle="BFS graph walk · epicenter and affected suppliers (SCRI scores on nodes)"
-            >
+            <Panel title="Propagation on map">
               <InteractiveWorldMap
                 layers={{}}
                 simulationOverlay={result.map_overlay}

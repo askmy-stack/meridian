@@ -6,11 +6,23 @@ from typing import Any, Dict, List
 
 from fastapi import APIRouter
 
+from ...intelligence.model_status import get_risk_model_status
+
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
+
+METHODOLOGY_LIMITATIONS: List[str] = [
+    "Default XGBoost may be trained on synthetic labels until a calibrated artifact is deployed.",
+    "Several SCRI features use static defaults (weather=0, WGI table, financial heuristics).",
+    "SCRI bands are modelled index tiers — not validated actuarial disruption probabilities.",
+    "Sector and causal views include demo classification / association-only paths.",
+]
 
 
 def _methodology_payload() -> Dict[str, Any]:
     """Structured metric definitions consumed by the dashboard."""
+    model_status = get_risk_model_status(ensure_scorer=False)
+    calibration_status = model_status["calibration_status"]
+
     return {
         "index_name": "SCRI",
         "index_full_name": "Supply Chain Risk Index",
@@ -20,6 +32,19 @@ def _methodology_payload() -> Dict[str, Any]:
             "geopolitical signals, network fragility, and operational stress."
         ),
         "model": "XGBoost + SHAP (see DECISIONS D-003)",
+        "calibration_status": calibration_status,
+        "limitations": METHODOLOGY_LIMITATIONS,
+        "display_guidance": {
+            "prefer_bands": True,
+            "primary_label": "risk band (LOW → CRITICAL)",
+            "secondary_label": "modelled index percentage",
+            "calibration_sublabel": (
+                "Demo calibration"
+                if calibration_status == "demo"
+                else "Modelled index"
+            ),
+            "documentation": "docs/LIMITATIONS.md",
+        },
         "references": [
             {
                 "title": "GDELT Event Codebook — Goldstein Scale",
@@ -89,6 +114,8 @@ def _methodology_payload() -> Dict[str, Any]:
             },
         ],
         "documentation_path": "docs/METRICS.md",
+        "limitations_path": "docs/LIMITATIONS.md",
+        "model_status": model_status,
     }
 
 
@@ -96,6 +123,12 @@ def _methodology_payload() -> Dict[str, Any]:
 def get_methodology() -> Dict[str, Any]:
     """Return SCRI methodology for dashboard tooltips and export."""
     return _methodology_payload()
+
+
+@router.get("/model-status")
+def get_model_status() -> Dict[str, Any]:
+    """Return risk model deployment status (loaded path, source, calibration)."""
+    return get_risk_model_status(ensure_scorer=True)
 
 
 @router.get("/kpis")

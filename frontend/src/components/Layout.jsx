@@ -17,6 +17,7 @@ import {
   X,
 } from 'lucide-react';
 import { useApiHealth } from '../hooks/useApiHealth';
+import { ModelStatusBanner } from './ModelStatusBanner';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Command Center', icon: BarChart3, end: true },
@@ -116,10 +117,7 @@ export function Layout() {
             >
               <Menu className="h-6 w-6" />
             </button>
-            <p className="text-xs text-slate-500 hidden md:block truncate max-w-md">
-              SCRI · Signals → Graph → Explainable scores
-            </p>
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2 text-xs ml-auto">
               <span className="text-slate-500">API</span>
               <span className={health?.api ? 'text-emerald-400' : 'text-red-400'}>
                 {health?.api ? 'Online' : 'Offline'}
@@ -129,6 +127,7 @@ export function Layout() {
         </header>
 
         <main className="flex-1 px-4 sm:px-6 lg:px-8 py-8 w-full">
+          <ModelStatusBanner />
           <Outlet />
         </main>
       </div>

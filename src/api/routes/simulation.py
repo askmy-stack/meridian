@@ -316,6 +316,12 @@ def _run_scenario_payload(scenario: dict) -> dict:
             "revenue_at_risk_usd": prop_dict.get("revenue_at_risk", 0),
             "disruption_probability": mc_dict.get("disruption_probability", 0),
             "expected_duration_days": mc_dict.get("expected_duration_days", 0),
+            "p10_delay_days": mc_dict.get("p10_delay_days", 0),
+            "p50_delay_days": mc_dict.get("p50_delay_days", 0),
+            "p90_delay_days": mc_dict.get("p90_delay_days", 0),
+            "p10_revenue_at_risk": mc_dict.get("p10_revenue_at_risk", 0),
+            "p50_revenue_at_risk": mc_dict.get("p50_revenue_at_risk", 0),
+            "p90_revenue_at_risk": mc_dict.get("p90_revenue_at_risk", 0),
             "recovery_days": prop_dict.get("recovery_time_days", 0),
         },
         "mitigations": scenario.get("mitigations", []),
@@ -345,6 +351,9 @@ async def compare_scenarios(body: CompareRequest) -> dict:
                 "monte_carlo": {
                     "disruption_probability": payload["monte_carlo"].get("disruption_probability"),
                     "expected_duration_days": payload["monte_carlo"].get("expected_duration_days"),
+                    "p10_delay_days": payload["monte_carlo"].get("p10_delay_days"),
+                    "p50_delay_days": payload["monte_carlo"].get("p50_delay_days"),
+                    "p90_delay_days": payload["monte_carlo"].get("p90_delay_days"),
                 },
             }
         )

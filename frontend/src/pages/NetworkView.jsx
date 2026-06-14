@@ -6,7 +6,7 @@ import { NetworkGraph } from '../components/NetworkGraph';
 import { DemoBanner } from '../components/DemoBanner';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
-import { riskPillClass } from '../lib/risk';
+import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
 
 export function NetworkView() {
   const [selectedNode, setSelectedNode] = useState(null);
@@ -74,18 +74,19 @@ export function NetworkView() {
               key={node.id}
               type="button"
               onClick={() => setSelectedNode(node)}
-              className={`text-left p-4 rounded-xl border transition-all ${
+              className={`text-left p-3 sm:p-4 rounded-xl border transition-all ${
                 selectedNode?.id === node.id
                   ? 'border-blue-500/50 bg-blue-500/10'
                   : 'border-slate-700/50 hover:border-slate-600'
               }`}
             >
               <span className="text-[10px] uppercase tracking-wider text-slate-500">{node.type}</span>
-              <p className="font-medium text-white mt-1">{node.label}</p>
+              <p className="font-medium text-white mt-1 truncate">{node.label}</p>
               {node.risk_score > 0 && (
-                <span className={`risk-pill mt-2 inline-block ${riskPillClass(node.risk_score)}`}>
-                  {Math.round(node.risk_score * 100)}%
-                </span>
+                <>
+                  <RiskBar score={node.risk_score} className="mt-2" />
+                  <RiskPill score={node.risk_score} size="sm" className="mt-2" />
+                </>
               )}
             </button>
           ))}

@@ -46,6 +46,7 @@ class AlertResponse(BaseModel):
     causal_method: Optional[str] = None
     causal_effect_size: Optional[float] = None
     causal_disclaimer: Optional[str] = None
+    causal_sample_count: Optional[int] = None
     timestamp: str
 
 
@@ -70,6 +71,7 @@ def _alert_to_response(alert: Alert) -> AlertResponse:
         causal_method=alert.causal_method,
         causal_effect_size=alert.causal_effect_size,
         causal_disclaimer=alert.causal_disclaimer,
+        causal_sample_count=alert.causal_sample_count,
         timestamp=alert.timestamp,
     )
 

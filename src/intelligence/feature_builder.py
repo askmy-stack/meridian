@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import structlog
 
 from .risk_scorer import FeatureVector
 
 logger = structlog.get_logger(__name__)
+
+FEATURE_COUNT = 13
 
 # Country-level political stability proxy (World Bank WGI-inspired scale, demo values)
 # Higher = more stable. Sources documented in docs/METRICS.md
@@ -39,6 +41,49 @@ COUNTRY_STABILITY: Dict[str, float] = {
 }
 
 
+def _query_graph_signals(
+    supplier_id: str,
+    neo4j_client: Any,
+) -> Tuple[int, int, float, float, bool]:
+    """Return recent/critical events, conflict proximity, port congestion, query_ok."""
+    recent_events = 0
+    critical_events = 0
+    conflict_proximity = 0.1
+    port_congestion = 0.0
+    query_ok = False
+
+    try:
+        rows = neo4j_client.execute_query(
+            """
+            MATCH (s:Supplier {id: $supplier_id})
+            OPTIONAL MATCH (e:Event)-[:AFFECTS]->(s)
+            WHERE e.ingested_at > datetime() - duration('P30D')
+            WITH s,
+                 count(e) AS recent,
+                 sum(CASE WHEN e.severity >= 0.75 THEN 1 ELSE 0 END) AS critical,
+                 max(e.severity) AS max_severity
+            OPTIONAL MATCH (s)-[:SHIPS_VIA]->(p:Port)-[:PASSES_THROUGH]->(c:Chokepoint)
+            RETURN recent, critical, max_severity, coalesce(c.vessel_count, 0) AS vessels
+            LIMIT 1
+            """,
+            {"supplier_id": supplier_id},
+        )
+        query_ok = True
+        if rows:
+            row = rows[0]
+            recent_events = int(row.get("recent") or 0)
+            critical_events = int(row.get("critical") or 0)
+            max_sev = row.get("max_severity")
+            if max_sev is not None:
+                conflict_proximity = min(float(max_sev), 1.0)
+            vessels = int(row.get("vessels") or 0)
+            port_congestion = min(vessels / 20.0, 1.0)
+    except Exception as exc:
+        logger.warning("feature_query_failed", supplier_id=supplier_id, error=str(exc))
+
+    return recent_events, critical_events, conflict_proximity, port_congestion, query_ok
+
+
 def build_supplier_features(
     supplier_id: str,
     *,
@@ -54,33 +99,9 @@ def build_supplier_features(
     port_congestion = 0.0
 
     if neo4j_client is not None:
-        try:
-            rows = neo4j_client.execute_query(
-                """
-                MATCH (s:Supplier {id: $supplier_id})
-                OPTIONAL MATCH (e:Event)-[:AFFECTS]->(s)
-                WHERE e.ingested_at > datetime() - duration('P30D')
-                WITH s,
-                     count(e) AS recent,
-                     sum(CASE WHEN e.severity >= 0.75 THEN 1 ELSE 0 END) AS critical,
-                     max(e.severity) AS max_severity
-                OPTIONAL MATCH (s)-[:SHIPS_VIA]->(p:Port)-[:PASSES_THROUGH]->(c:Chokepoint)
-                RETURN recent, critical, max_severity, coalesce(c.vessel_count, 0) AS vessels
-                LIMIT 1
-                """,
-                {"supplier_id": supplier_id},
-            )
-            if rows:
-                row = rows[0]
-                recent_events = int(row.get("recent") or 0)
-                critical_events = int(row.get("critical") or 0)
-                max_sev = row.get("max_severity")
-                if max_sev is not None:
-                    conflict_proximity = min(float(max_sev), 1.0)
-                vessels = int(row.get("vessels") or 0)
-                port_congestion = min(vessels / 20.0, 1.0)
-        except Exception as exc:
-            logger.warning("feature_query_failed", supplier_id=supplier_id, error=str(exc))
+        recent_events, critical_events, conflict_proximity, port_congestion, _ = (
+            _query_graph_signals(supplier_id, neo4j_client)
+        )
 
     if critical_flag and critical_events == 0:
         critical_events = 1
@@ -96,3 +117,98 @@ def build_supplier_features(
         single_source_flag=single_source_flag,
         supplier_financial_health=0.35 if critical_flag else 0.65,
     )
+
+
+def build_feature_provenance(
+    supplier_id: str,
+    *,
+    single_source_flag: bool = False,
+    critical_flag: bool = False,
+    country_iso: Optional[str] = None,
+    neo4j_client: Optional[Any] = None,
+) -> Dict[str, Any]:
+    """Document which SCRI features are live vs static/default for UI transparency."""
+    recent_events = 0
+    critical_events = 0
+    conflict_proximity = 0.1
+    port_congestion = 0.0
+    graph_queried = False
+    graph_live = False
+
+    if neo4j_client is not None:
+        recent_events, critical_events, conflict_proximity, port_congestion, graph_queried = (
+            _query_graph_signals(supplier_id, neo4j_client)
+        )
+        graph_live = graph_queried and (
+            recent_events > 0 or critical_events > 0 or port_congestion > 0
+        )
+
+    country_key = (country_iso or "").upper()
+    stability_from_table = country_key in COUNTRY_STABILITY
+
+    features: Dict[str, Dict[str, str]] = {
+        "conflict_proximity_score": {
+            "source": "live_graph" if graph_live and conflict_proximity > 0.1 else "default",
+            "note": "Event severity max in 30d window" if graph_live else "Baseline 0.1",
+        },
+        "political_stability_index": {
+            "source": "static_wgi_table" if stability_from_table else "default",
+            "note": f"Country table ({country_key or 'unknown'})",
+        },
+        "port_congestion_score": {
+            "source": "live_graph" if graph_live and port_congestion > 0 else "default",
+            "note": "Chokepoint vessel counts" if port_congestion > 0 else "No congestion signal",
+        },
+        "weather_risk_score": {
+            "source": "default_zero",
+            "note": "NOAA layer not wired into SCRI features yet",
+        },
+        "recent_events_count": {
+            "source": "live_graph" if graph_queried and recent_events > 0 else "default",
+            "note": f"{recent_events} events in 30d" if graph_queried else "Graph unavailable",
+        },
+        "critical_events_count": {
+            "source": "live_graph"
+            if graph_queried and (critical_events > 0 or critical_flag)
+            else "default",
+            "note": "Severity ≥ 0.75 events or critical supplier flag",
+        },
+        "dependency_depth": {
+            "source": "default",
+            "note": "Tier depth not ingested — defaults to tier 1",
+        },
+        "single_source_flag": {
+            "source": "supplier_record",
+            "note": "Neo4j Supplier.single_source_flag",
+        },
+        "alternative_sources_count": {
+            "source": "default_zero",
+            "note": "Alternate supplier count not computed in MVP",
+        },
+        "supplier_financial_health": {
+            "source": "heuristic",
+            "note": "Derived from critical_flag — not ERP financials",
+        },
+        "market_volatility_index": {
+            "source": "default_zero",
+            "note": "Market feed not connected",
+        },
+        "historical_disruption_count": {
+            "source": "default_zero",
+            "note": "12-month history not materialized",
+        },
+        "avg_resolution_time_days": {
+            "source": "default_zero",
+            "note": "Resolution time not tracked in graph",
+        },
+    }
+
+    live_sources = {"live_graph", "supplier_record"}
+    live_count = sum(1 for meta in features.values() if meta["source"] in live_sources)
+
+    return {
+        "features": features,
+        "live_feature_count": live_count,
+        "total_features": FEATURE_COUNT,
+        "summary": f"{live_count}/{FEATURE_COUNT} features from live graph",
+    }

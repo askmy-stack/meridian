@@ -4,7 +4,20 @@ import { useApiHealth } from '../hooks/useApiHealth';
 export function DemoBanner() {
   const { data, isError } = useApiHealth();
 
-  if (!isError && data?.neo4j === 'ok') return null;
+  const neo4jDown = isError || data?.neo4j !== 'ok';
+  const demoModel = data?.model?.is_demo_calibration || data?.calibration_status === 'demo';
+
+  if (!neo4jDown && !demoModel) return null;
+
+  if (!neo4jDown && demoModel) {
+    return (
+      <div className="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3">
+        <p className="text-xs text-amber-200/90">
+          Demo calibration active — SCRI bands are modelled indices, not validated probabilities.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="mb-6 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">

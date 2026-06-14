@@ -175,6 +175,7 @@ class XGBoostRiskScorer:
         """
         self.model_path = model_path
         self.use_shap = use_shap and SHAP_AVAILABLE
+        self.model_source: str = "synthetic_default"
         
         self.logger = logger.bind(
             scorer="XGBoostRiskScorer",
@@ -188,11 +189,24 @@ class XGBoostRiskScorer:
     
     def _load_or_train_model(self) -> None:
         """Load existing model or train a new one."""
-        if self.model_path and os.path.exists(self.model_path):
+        mlflow_uri = os.getenv("MLFLOW_MODEL_URI")
+        if mlflow_uri:
+            try:
+                import mlflow.xgboost
+
+                self._model = mlflow.xgboost.load_model(mlflow_uri)
+                self.model_source = "mlflow"
+                self.model_path = mlflow_uri
+                self.logger.info("model_loaded", source="mlflow", uri=mlflow_uri)
+            except Exception as e:
+                self.logger.error("mlflow_model_load_failed", error=str(e))
+                self._train_default_model()
+        elif self.model_path and os.path.exists(self.model_path):
             try:
                 self._model = xgb.XGBClassifier()
                 self._model.load_model(self.model_path)
-                self.logger.info("model_loaded", path=self.model_path)
+                self.model_source = "file"
+                self.logger.info("model_loaded", path=self.model_path, source="file")
             except Exception as e:
                 self.logger.error("model_load_failed", error=str(e))
                 self._train_default_model()
@@ -210,7 +224,11 @@ class XGBoostRiskScorer:
     
     def _train_default_model(self) -> None:
         """Train a default model with synthetic data."""
-        self.logger.info("training_default_model")
+        self.model_source = "synthetic_default"
+        self.logger.warning(
+            "training_default_model",
+            message="Using synthetic labels — SCRI is demo-calibrated only",
+        )
         
         # Generate synthetic training data
         np.random.seed(42)
