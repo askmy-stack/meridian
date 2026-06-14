@@ -6,77 +6,108 @@ Align narration with **SCRI honesty banners** (ModelStatusBanner, band-first Ris
 ## Prerequisites
 
 ```bash
-docker compose up -d neo4j kafka zookeeper
+docker compose up -d neo4j
 cp .env.example .env   # NEO4J_URI=bolt://localhost:7688
 set -a && source .env && set +a
-PY=/opt/anaconda3/bin/python make seed-all   # or your venv python
-PY=/opt/anaconda3/bin/python uvicorn src.api.main:app --reload --port 8002
-cd frontend && npm run dev
+
+make portfolio-ready     # WGI + train + seed + score (Neo4j steps skip if down)
+make dev                 # API :8002
+make dev-frontend        # UI :5173
 ```
 
 Open **http://localhost:5173**
 
+Record GIF: `bash scripts/record_demo.sh` → `docs/assets/meridian-demo.gif`
+
 ---
 
-## Scene 1 — Honest Command Center (30s)
+## Scene 1 — Honest Command Center (25s)
 
-1. Land on **Command Center** (`/`)
-2. Point out **ModelStatusBanner** — demo vs validated calibration label
-3. KPI cards: suppliers tracked, critical risks, active events (band-first tooltips)
+**Route:** `/` (Command Center)
+
+1. Land on dashboard — note **ModelStatusBanner** at top (demo vs validated calibration)
+2. KPI cards: suppliers tracked, critical risks, active events — hover for **band-first** tooltips (LOW/MEDIUM/HIGH/CRITICAL before %)
+3. Weekly digest panel — label shows `narrative_type: template` (not LLM-verified prose)
 4. Click **Export digest** — markdown executive brief downloads
-5. Mention: SCRI is a **modelled index** with band-first display — not actuarial probability until labeled retrain
+5. Narration: SCRI is a **modelled index** with honest calibration — not actuarial probability until labeled retrain
 
 ---
 
-## Scene 2 — Red Sea scenario (45s)
+## Scene 2 — Red Sea scenario (35s)
 
-1. Go to **Simulator** (`/simulate`)
-2. Select **Red Sea / Bab-el-Mandeb Disruption**
-3. Click **Run scenario**
-4. Highlight:
-   - Suppliers affected (BFS propagation)
-   - **p10 / p50 / p90** delay bands (Monte Carlo — not point estimates)
+**Route:** `/simulate` (Simulator)
+
+1. Select **Red Sea / Bab-el-Mandeb Disruption** preset
+2. Click **Run scenario**
+3. Highlight:
+   - Suppliers affected (BFS graph propagation)
+   - **p10 / p50 / p90** delay bands — Monte Carlo, not point estimates
+   - Revenue impact bands if shown
    - Mitigation playbook bullets
-5. Scroll to **Propagation on map** — epicenter + affected suppliers
+4. Scroll to **Propagation on map** — epicenter + affected supplier markers
 
 Optional: **Compare scenarios** — Red Sea vs Suez side-by-side.
 
 ---
 
-## Scene 3 — World map + provenance (45s)
+## Scene 3 — World map + provenance (30s)
 
-1. Open **Risk Map** (`/map`)
-2. Toggle layers: conflict zones, trade routes, active events
-3. Enable **Weather (NOAA)** and **Sanctions** supplemental layers
-4. Click a high-risk supplier marker → **Entity drawer**
-5. Note **feature provenance** line (live vs static features)
+**Route:** `/map` (Risk Map)
 
----
-
-## Scene 4 — Copilot + sectors (30s)
-
-1. **Copilot** (`/copilot`) — ask: *"What happens if Red Sea shipping is disrupted?"*
-2. Click through to suggested simulator preset
-3. **Sectors** (`/sectors`) — keyword classification tooltip (not ML taxonomy)
-4. **Suppliers** — SHAP explanation with calibration sublabel
+1. Toggle layers: conflict zones, trade routes, active events
+2. Enable **Weather (NOAA)** and **Sanctions** supplemental layers
+3. Click a high-risk supplier marker → **Entity drawer**
+4. Point out **feature provenance** line (live vs static/stub features)
+5. Mention labeled training data in `data/disruption_labels.csv` when discussing risk scores
 
 ---
 
-## Scene 5 — Live pipeline (optional, 30s)
+## Scene 4 — Copilot, sectors, suppliers (25s)
 
-With Kafka running:
+**Routes:** `/copilot`, `/sectors`, `/suppliers`
+
+1. **Copilot** — ask: *"What happens if Red Sea shipping is disrupted?"*
+   - Show disclaimer banner and graph-grounded facts
+   - Click through to suggested simulator preset
+2. **Sectors** — hover classification tooltip (`classification_method: keyword`, not ML taxonomy)
+3. **Suppliers** — open SHAP explanation with calibration sublabel and **pillar mini-bars** (geo/ops/fin stubs)
+
+---
+
+## Scene 5 — Graph health + alerts (25s)
+
+**Routes:** `/ops/graph-health`, `/alerts`
+
+1. **Graph Health** — completeness score, tier-2 supplier count, geo/event coverage
+2. Model status block mirrors Command Center banner
+3. **Alerts** — tier badges, causal **association** label + sample count (not verified causation)
+
+---
+
+## Scene 6 — Live pipeline (optional, 20s)
+
+**Without Kafka (laptop demo):**
+
+```bash
+make pipeline-batch
+```
+
+**With Kafka:**
 
 ```bash
 make pipeline-refresh
 ```
 
 Explain: GDELT → Kafka → Neo4j graph loader → entity resolution → Slack-ready alerts.
-For portfolio demos without Kafka, see `docs/ARCHITECTURE_DEMO.md` (batch mode).
+Batch mode re-scores suppliers without streaming — see `docs/ARCHITECTURE_DEMO.md`.
 
 ---
 
 ## Recording tips
 
 - Resolution: 1920×1080, dark browser theme matches UI
-- Save GIF per `docs/assets/demo-placeholder.md` → `docs/assets/meridian-demo.gif`
+- Script: `bash scripts/record_demo.sh` (ffmpeg + palette GIF conversion)
+- Target: `docs/assets/meridian-demo.gif` (≤ 15 MB, ~12–15 fps)
 - Narration hook: *"Every major disruption was visible in signals weeks early — Meridian connects them to your suppliers with honest calibration labels."*
+
+See also: [`docs/assets/demo-placeholder.md`](assets/demo-placeholder.md)

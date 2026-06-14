@@ -446,3 +446,38 @@
 
 [OWNER NOTES]
 -
+
+---
+## Session 11 — 2026-06-14
+**Duration:** ~2h
+**Phase:** Portfolio demo ready — data credibility + Makefile + docs
+
+### Built
+- **Labels:** `data/disruption_labels.csv` expanded to 50+ rows (Suez, Fukushima, Taiwan earthquake, Red Sea, COVID, Ukraine, etc.)
+- **Makefile:** `portfolio-ready`, `fetch-wgi`, `seed-erp`, `pipeline-batch`, `check-deploy`
+- **ERP demo:** expanded `data/sample_erp_tiers.csv` (22 tier edges)
+- **Scripts:** `record_demo.sh`, `check_deploy_config.sh`
+- **Docs:** README hero + quick start, `docs/DEMO.md` (GraphHealth, pillars, batch), DEPLOY_QUICKSTART env fix
+- **Frontend:** `VITE_API_URL` alias in client; `.env.example` production notes
+- PR #13 `feat/portfolio-demo-ready`
+
+### State at end
+- Unit tests + frontend build pass without Neo4j
+- `make portfolio-ready` trains model + fetches WGI; Neo4j steps skip gracefully if down
+- Demo GIF still placeholder until `bash scripts/record_demo.sh`
+- Deploy config validated; execution deferred (no secrets)
+
+### Decisions made
+- `portfolio-ready` uses `-` prefix on Neo4j steps so WGI + train succeed offline
+- SCRI honesty thesis front-and-center in README hero
+
+### Blockers
+- None for merge; live deploy requires owner credentials
+
+### Next session starts with
+1. Record `docs/assets/meridian-demo.gif`
+2. Execute Railway + Vercel deploy per DEPLOY_QUICKSTART.md
+3. Cron daily `export_graph_snapshots.py` for TGN manifest readiness
+
+[OWNER NOTES]
+-

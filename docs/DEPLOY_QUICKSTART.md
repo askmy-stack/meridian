@@ -60,7 +60,9 @@ Optional: upload trained model artifact to Railway volume or bake into image aft
 
 | Variable | Value |
 |----------|-------|
-| `VITE_API_URL` | `https://YOUR-API.up.railway.app` |
+| `VITE_API_BASE_URL` | `https://YOUR-API.up.railway.app` |
+
+> Also accepts `VITE_API_URL` as alias. Local dev default uses `/api` proxy — see `frontend/.env.example`.
 
 5. Deploy. `frontend/vercel.json` handles SPA rewrites.
 
@@ -70,6 +72,7 @@ Verify: open Vercel URL → Command Center loads KPIs (API online badge green).
 
 ## 4. Post-deploy checklist
 
+- [ ] `make check-deploy` passes locally
 - [ ] `/health` returns `neo4j: ok`
 - [ ] `/metrics/model-status` shows expected calibration banner
 - [ ] Risk map loads supplier markers
