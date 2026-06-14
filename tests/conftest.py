@@ -16,6 +16,13 @@ from pathlib import Path
 
 import pytest
 
+# Set before any src.api imports (jwt user bootstrap reads env at first use).
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-for-pytest-only")
+os.environ.setdefault("MERIDIAN_REQUIRE_AUTH", "false")
+os.environ.setdefault("NEO4J_URI", "bolt://localhost:7688")
+os.environ.setdefault("NEO4J_PASSWORD", "meridian_password")
+
 
 @pytest.fixture(autouse=True)
 def _isolate_alert_persistence(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -36,7 +43,7 @@ def _set_test_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     """Force ENVIRONMENT=test so security guards stay strict but predictable."""
     monkeypatch.setenv("ENVIRONMENT", "test")
     # Stable JWT key for tests (does not match prod requirements; testing only)
-    monkeypatch.setenv("JWT_SECRET_KEY", "test-secret-do-not-use-in-prod-x" * 2)
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret-for-pytest-only")
     monkeypatch.setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
     # Align with docker-compose host port mapping (7688) when not set by CI
     if not os.getenv("NEO4J_URI"):

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.intelligence import feature_builder as fb
+import src.intelligence.feature_builder as fb
 from src.intelligence.feature_builder import (
     COUNTRY_STABILITY,
     political_stability_for_country,

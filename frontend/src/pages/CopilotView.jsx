@@ -4,6 +4,7 @@ import { useMutation, useQuery } from 'react-query';
 import { Bot, History, Play, Send, Sparkles } from 'lucide-react';
 import { askCopilot, fetchBacktest } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
+import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
 import { Panel } from '../components/ui/Panel';
 
@@ -89,6 +90,16 @@ export function CopilotView() {
 
           {copilotMutation.isLoading && <LoadingState label="Analyzing graph context…" />}
 
+          {copilotMutation.isError && (
+            <ErrorBanner
+              message={
+                copilotMutation.error?.message ||
+                'Copilot request failed — check API, Qdrant, and Neo4j are running.'
+              }
+              onRetry={() => copilotMutation.mutate(question)}
+            />
+          )}
+
           {copilotMutation.data && (
             <div className="p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5">
               <div className="flex gap-2 mb-2">
@@ -154,6 +165,14 @@ export function CopilotView() {
           </div>
 
           {backtestQuery.isLoading && <LoadingState />}
+
+          {backtestQuery.isError && (
+            <ErrorBanner
+              message="Could not load backtest data — run `make backtest-scri` and ensure the API is up."
+              onRetry={() => backtestQuery.refetch()}
+            />
+          )}
+
           {backtestQuery.data && (
             <div className="space-y-4">
               <div className="flex items-start gap-3">

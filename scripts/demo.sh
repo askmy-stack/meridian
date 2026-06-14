@@ -29,8 +29,8 @@ python3 -m src.seeding.ports_chokepoints
 python3 scripts/seed_suppliers.py --file data/sample_suppliers.csv
 python3 scripts/seed_demo_scenarios.py
 
-echo "==> Running unit tests"
-python3 -m pytest tests/unit/ -q
+echo "==> Running unit tests (no Neo4j required)"
+python3 -m pytest tests/unit/ -m "not neo4j_required" -q
 
 echo ""
 echo "Demo stack is ready."

@@ -106,6 +106,9 @@ def main() -> int:
 
     client = get_neo4j_client()
     count = ingest_tier_edges(client, rows, dry_run=False)
+    from src.entity_resolution import get_fuzzy_matcher
+
+    get_fuzzy_matcher().invalidate_cache()
     print(f"Ingested {count} SUPPLIES tier edges from {args.file}")
     return 0
 

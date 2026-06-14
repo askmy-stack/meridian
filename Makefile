@@ -1,4 +1,4 @@
-.PHONY: help dev up down test test-unit test-integration lint format seed validate-env clean demo \
+.PHONY: help dev up down test test-unit test-unit-fast test-integration lint format seed validate-env clean demo \
 	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy rescore-recent \
 	train-tgn backtest-scri collect-causal-pairs
 
@@ -39,6 +39,9 @@ test: test-unit test-integration  ## Run all tests
 
 test-unit:  ## Fast unit tests (no services required)
 	$(PY) -m pytest tests/unit/ -v
+
+test-unit-fast:  ## Unit tests without Neo4j (CI fast lane)
+	$(PY) -m pytest tests/unit/ -m "not neo4j_required" -v
 
 test-integration:  ## Integration tests (requires `make up`)
 	$(PY) -m pytest tests/integration/ -v

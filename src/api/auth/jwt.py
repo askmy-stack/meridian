@@ -248,7 +248,15 @@ def _build_users_db() -> Dict[str, Dict[str, Any]]:
     return users
 
 
-_USERS_DB: Dict[str, Dict[str, Any]] = _build_users_db()
+_USERS_DB: Optional[Dict[str, Dict[str, Any]]] = None
+
+
+def get_users_db() -> Dict[str, Dict[str, Any]]:
+    """Return bootstrap user store (lazy init so tests can set env first)."""
+    global _USERS_DB
+    if _USERS_DB is None:
+        _USERS_DB = _build_users_db()
+    return _USERS_DB
 
 
 def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
@@ -261,7 +269,7 @@ def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
     Returns:
         User dict if authenticated, None otherwise
     """
-    user = _USERS_DB.get(username)
+    user = get_users_db().get(username)
     
     if not user:
         return None
@@ -287,7 +295,7 @@ def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
     Returns:
         User dict or None
     """
-    for username, user_data in _USERS_DB.items():
+    for username, user_data in get_users_db().items():
         if user_data["user_id"] == user_id:
             return {
                 "user_id": user_data["user_id"],
