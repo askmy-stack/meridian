@@ -17,7 +17,21 @@ const TYPE_COLORS = {
   chokepoint: '#dc2626',
   sku: '#7c3aed',
   region: '#65a30d',
+  event: '#a855f7',
+  country: '#eab308',
+  unknown: '#64748b',
   default: '#6b7280',
+};
+
+const TYPE_DISPLAY = {
+  supplier: 'Supplier',
+  port: 'Port',
+  chokepoint: 'Chokepoint',
+  sku: 'SKU',
+  region: 'Region',
+  event: 'Event',
+  country: 'Country',
+  unknown: 'Entity',
 };
 
 export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520 }) {
@@ -29,7 +43,7 @@ export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520
     // Group nodes by type so each type gets its own concentric ring
     const groups = new Map();
     for (const node of nodes) {
-      const key = node.type || 'default';
+      const key = (node.type || 'unknown').toLowerCase();
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(node);
     }
@@ -104,7 +118,7 @@ export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520
           {nodes.map((node) => {
             const pos = layout.positions.get(node.id);
             if (!pos) return null;
-            const color = TYPE_COLORS[node.type] || TYPE_COLORS.default;
+            const color = TYPE_COLORS[node.type?.toLowerCase()] || TYPE_COLORS.default;
             const isSelected = selectedId === node.id;
             const isNeighbor = neighborIds?.has(node.id);
             const dim = neighborIds && !isNeighbor;
@@ -142,18 +156,20 @@ export function NetworkGraph({ nodes = [], edges = [], width = 720, height = 520
       </svg>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-400">
-        {layout.groups.map((g) => (
-          <span key={g} className="inline-flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-full"
-              style={{ backgroundColor: TYPE_COLORS[g] || TYPE_COLORS.default }}
-            />
-            {g}
-          </span>
-        ))}
-        <span className="text-gray-400 ml-auto">
-          Click a node to focus its neighborhood. {nodes.length} nodes · {edges.length} edges.
+      <div className="mt-4 pt-4 border-t border-slate-700/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-400">
+          {layout.groups.map((g) => (
+            <span key={g} className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-block w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: TYPE_COLORS[g] || TYPE_COLORS.default }}
+              />
+              {TYPE_DISPLAY[g] || g}
+            </span>
+          ))}
+        </div>
+        <span className="text-xs text-slate-500">
+          Click a node to focus neighborhood · {nodes.length} nodes · {edges.length} edges
         </span>
       </div>
     </div>

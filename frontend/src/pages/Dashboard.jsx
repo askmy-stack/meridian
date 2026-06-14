@@ -30,6 +30,7 @@ import {
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageHeader } from '../components/ui/PageHeader';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { Panel } from '../components/ui/Panel';
 import { StatCard } from '../components/ui/StatCard';
@@ -82,46 +83,18 @@ export function Dashboard() {
         />
       )}
 
-      <section
-        className="relative overflow-hidden rounded-3xl border border-blue-500/20 p-8 sm:p-10"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(15,22,41,0.95) 50%, rgba(7,11,20,1) 100%)',
-        }}
-      >
-        <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-          <div>
-            <div className="flex flex-wrap items-center gap-2 mb-2">
-              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-                Supply Chain Command Center
-              </p>
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 border border-blue-500/25">
-                {methodology?.index_name ?? 'SCRI'} · 0–100
-              </span>
-            </div>
-            <h1 className="page-title text-4xl sm:text-5xl">Risk Intelligence</h1>
-            <p className="mt-3 text-slate-400 max-w-2xl text-base sm:text-lg leading-relaxed">
-              {methodology?.description ||
-                digest?.narrative ||
-                'Geopolitical signals mapped to your supplier network with explainable SCRI scores.'}
-            </p>
-            {digest?.narrative_type === 'template' && (
-              <span className="inline-flex mt-3 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border border-slate-600 text-slate-400">
-                Weekly digest · template narrative
-              </span>
-            )}
-            <a
-              href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 mt-4 text-xs text-blue-400 hover:text-blue-300"
-            >
-              <BookOpen className="h-3.5 w-3.5" />
-              SCRI methodology & references
-            </a>
-          </div>
-          <div className="flex flex-wrap gap-3">
+      <PageHeader
+        eyebrow="Supply Chain Command Center"
+        title="Risk Intelligence"
+        subtitle={
+          methodology?.description ||
+          digest?.narrative ||
+          'Geopolitical signals mapped to your supplier network with explainable SCRI scores.'
+        }
+        badges={[`${methodology?.index_name ?? 'SCRI'} · modelled index 0–100`]}
+        gradient="blue"
+        actions={
+          <>
             <button
               type="button"
               onClick={() => {
@@ -141,9 +114,24 @@ export function Dashboard() {
               <Play className="h-4 w-4" />
               Run scenario
             </Link>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      >
+        {digest?.narrative_type === 'template' && (
+          <span className="inline-flex text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md border border-slate-600 text-slate-400">
+            Weekly digest · template narrative
+          </span>
+        )}
+        <a
+          href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          SCRI methodology & references
+        </a>
+      </PageHeader>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         <StatCard
