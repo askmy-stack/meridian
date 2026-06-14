@@ -376,3 +376,39 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 9 — 2026-06-14
+**Duration:** ~2h
+**Phase:** SCRI honesty — Chunk 2 (data + deploy prep)
+
+### Built
+- **Labeled dataset:** `data/disruption_labels.csv` (~30 rows) + `disruption_labels.py` loader
+- **Training:** `train_risk_model.py` prefers labels file; writes `models/training_metadata.json`
+- **Calibration:** `model_status.py` sets `calibration_status: validated` when model + labels metadata
+- **ERP prototype:** `scripts/ingest_erp_csv.py`, `data/sample_erp_tiers.csv`, `docs/ERP_INGEST.md`
+- **Graph health:** tier-2 count + `completeness_score` on `/analytics/graph/health`
+- **Live WGI:** `scripts/fetch_wgi_stability.py`, `data/wgi_stability.json`, feature_builder cache loader
+- **Deploy prep:** `frontend/vercel.json`, `railway.toml`, `docs/DEPLOY_QUICKSTART.md`
+- **Demo assets:** `docs/assets/demo-placeholder.md`, updated `docs/DEMO.md` (honesty banner script)
+- PR #10 `feat/flaw-fixes-chunk2`
+
+### State at end
+- Unit tests + frontend build pass without Neo4j
+- Chunk 3 (multi-index SCRI, copilot grounding, graph dashboard) next
+
+### Decisions made
+- WGI cache ships with static fallback; `fetch_wgi_stability.py` upgrades to live World Bank API
+- ERP ingest uses `SUPPLIES` edges with tier property — not full ERP connector
+
+### Blockers
+- None for Chunk 2 merge
+
+### Next session starts with
+1. Chunk 3: multi-index SCRI stubs + SuppliersView pillar bars
+2. Copilot grounding + GraphHealthView dashboard
+3. Kafka batch-mode doc + `pipeline_batch.py`
+
+[OWNER NOTES]
+-

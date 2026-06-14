@@ -135,11 +135,45 @@ async def graph_health_report() -> dict:
         """
     )
     events = client.execute_query("MATCH (e:Event) RETURN count(e) AS event_count")
+    linked = client.execute_query(
+        """
+        MATCH (s:Supplier)
+        WHERE (s)<-[:AFFECTS]-(:Event)
+        RETURN count(DISTINCT s) AS suppliers_with_events
+        """
+    )
+    tier_edges = client.execute_query(
+        """
+        MATCH ()-[r:SUPPLIES]->()
+        WHERE r.tier >= 2
+        RETURN count(r) AS tier2_link_count
+        """
+    )
     row = checks[0] if checks else {}
+    suppliers = int(row.get("suppliers") or 0)
+    missing_geo = int(row.get("suppliers_missing_geo") or 0)
+    without_ports = int(orphans[0].get("suppliers_without_ports", 0) if orphans else 0)
+    event_count = int(events[0].get("event_count", 0) if events else 0)
+    with_events = int(linked[0].get("suppliers_with_events", 0) if linked else 0)
+    tier2_count = int(tier_edges[0].get("tier2_link_count", 0) if tier_edges else 0)
+
+    geo_score = 1.0 - (missing_geo / suppliers) if suppliers else 0.0
+    event_score = with_events / suppliers if suppliers else 0.0
+    port_score = 1.0 - (without_ports / suppliers) if suppliers else 0.0
+    tier_score = min(tier2_count / max(suppliers, 1), 1.0)
+    completeness_score = round(
+        (geo_score * 0.35) + (event_score * 0.25) + (port_score * 0.25) + (tier_score * 0.15),
+        3,
+    )
+
     return {
-        "suppliers": row.get("suppliers", 0),
-        "suppliers_missing_geo": row.get("suppliers_missing_geo", 0),
-        "suppliers_without_ports": orphans[0].get("suppliers_without_ports", 0) if orphans else 0,
-        "events": events[0].get("event_count", 0) if events else 0,
-        "status": "healthy" if row.get("suppliers", 0) > 0 else "empty",
+        "suppliers": suppliers,
+        "suppliers_missing_geo": missing_geo,
+        "suppliers_with_geo": max(suppliers - missing_geo, 0),
+        "suppliers_without_ports": without_ports,
+        "suppliers_with_events": with_events,
+        "events": event_count,
+        "tier2_link_count": tier2_count,
+        "completeness_score": completeness_score,
+        "status": "healthy" if suppliers > 0 else "empty",
     }
