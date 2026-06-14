@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 import structlog
@@ -11,6 +13,8 @@ from .risk_scorer import FeatureVector
 logger = structlog.get_logger(__name__)
 
 FEATURE_COUNT = 13
+REPO_ROOT = Path(__file__).resolve().parents[2]
+WGI_CACHE_PATH = REPO_ROOT / "data" / "wgi_stability.json"
 
 # Country-level political stability proxy (World Bank WGI-inspired scale, demo values)
 # Higher = more stable. Sources documented in docs/METRICS.md
@@ -39,6 +43,34 @@ COUNTRY_STABILITY: Dict[str, float] = {
     "EG": 0.42,
     "ZA": 0.48,
 }
+
+
+def _load_wgi_cache() -> Tuple[Dict[str, float], Dict[str, str]]:
+    """Load cached WGI scores and per-country provenance."""
+    if not WGI_CACHE_PATH.is_file():
+        return COUNTRY_STABILITY, {iso: "static_fallback" for iso in COUNTRY_STABILITY}
+
+    try:
+        payload = json.loads(WGI_CACHE_PATH.read_text(encoding="utf-8"))
+        scores = payload.get("scores") or {}
+        sources = payload.get("sources") or {}
+        merged_scores = {**COUNTRY_STABILITY, **{k.upper(): float(v) for k, v in scores.items()}}
+        merged_sources = {iso: "static_fallback" for iso in COUNTRY_STABILITY}
+        for iso, source in sources.items():
+            merged_sources[iso.upper()] = str(source)
+        return merged_scores, merged_sources
+    except (json.JSONDecodeError, OSError, TypeError, ValueError) as exc:
+        logger.warning("wgi_cache_load_failed", error=str(exc))
+        return COUNTRY_STABILITY, {iso: "static_fallback" for iso in COUNTRY_STABILITY}
+
+
+def political_stability_for_country(country_iso: Optional[str]) -> Tuple[float, str]:
+    """Return stability score and provenance token for a country ISO code."""
+    scores, sources = _load_wgi_cache()
+    country_key = (country_iso or "").upper()
+    score = scores.get(country_key, 0.5)
+    source = sources.get(country_key, "static_fallback")
+    return score, source
 
 
 def _query_graph_signals(
@@ -106,7 +138,7 @@ def build_supplier_features(
     if critical_flag and critical_events == 0:
         critical_events = 1
 
-    stability = COUNTRY_STABILITY.get((country_iso or "").upper(), 0.5)
+    stability, _stability_source = political_stability_for_country(country_iso)
 
     return FeatureVector(
         conflict_proximity_score=conflict_proximity,
@@ -144,7 +176,7 @@ def build_feature_provenance(
         )
 
     country_key = (country_iso or "").upper()
-    stability_from_table = country_key in COUNTRY_STABILITY
+    _, stability_source = political_stability_for_country(country_iso)
 
     features: Dict[str, Dict[str, str]] = {
         "conflict_proximity_score": {
@@ -152,8 +184,12 @@ def build_feature_provenance(
             "note": "Event severity max in 30d window" if graph_live else "Baseline 0.1",
         },
         "political_stability_index": {
-            "source": "static_wgi_table" if stability_from_table else "default",
-            "note": f"Country table ({country_key or 'unknown'})",
+            "source": stability_source,
+            "note": (
+                f"WGI cache ({country_key})"
+                if stability_source == "live_wgi"
+                else f"Static table ({country_key or 'unknown'})"
+            ),
         },
         "port_congestion_score": {
             "source": "live_graph" if graph_live and port_congestion > 0 else "default",

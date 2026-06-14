@@ -8,6 +8,8 @@ from typing import Any, Dict, Literal, Optional
 
 import structlog
 
+from .disruption_labels import used_validated_labels_for_training
+
 logger = structlog.get_logger(__name__)
 
 ModelSource = Literal["mlflow", "file", "synthetic_default"]
@@ -75,8 +77,11 @@ def get_risk_model_status(*, ensure_scorer: bool = False) -> Dict[str, Any]:
         _synthetic_warning_logged = True
 
     training_status: TrainingStatus = "validated" if source in ("file", "mlflow") else "demo"
+    labels_validated = used_validated_labels_for_training()
     calibration_status: CalibrationStatus = (
-        "validated" if training_status == "validated" else "demo"
+        "validated"
+        if training_status == "validated" and labels_validated
+        else "demo"
     )
 
     return {
@@ -86,5 +91,6 @@ def get_risk_model_status(*, ensure_scorer: bool = False) -> Dict[str, Any]:
         "mlflow_model_uri": mlflow_uri,
         "training_status": training_status,
         "calibration_status": calibration_status,
-        "is_demo_calibration": source == "synthetic_default",
+        "labels_validated": labels_validated,
+        "is_demo_calibration": calibration_status == "demo",
     }

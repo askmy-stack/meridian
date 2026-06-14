@@ -4,7 +4,7 @@ Maps 24 critique flaws to remediation chunks. **Chunk 1 (this PR)** covers P0/P1
 
 | # | Flaw | Solution | Status |
 |---|------|----------|--------|
-| 1 | No labeled disruption dataset | Build historical disruption labels + training CSV; MLflow tracked retrain | **chunk2** |
+| 1 | No labeled disruption dataset | Build historical disruption labels + training CSV; MLflow tracked retrain | **done** (chunk2) |
 | 2 | SCRI presented as precise probability | Band-first UI, "modelled index" sublabels, `display_guidance` API | **done** (chunk1) |
 | 3 | Multi-index SCRI (geo/ops/fin) overstated | Document single composite; optional API stub fields later | **chunk3** |
 | 4 | Causal language on correlates | Association-only badge + sample count on alerts | **done** (chunk1) |
@@ -15,27 +15,28 @@ Maps 24 critique flaws to remediation chunks. **Chunk 1 (this PR)** covers P0/P1
 | 9 | Sector taxonomy implied ML | `classification_method: keyword` + SectorsView tooltip | **done** (chunk1) |
 | 10 | Monte Carlo point estimates | p10/p50/p90 delay + revenue bands in API/UI | **done** (chunk1) |
 | 11 | TGN forecast oversold | "Research track · LSTM fallback" badge | **done** (chunk1) |
-| 12 | ERP / tier-N not disclosed | LIMITATIONS.md + roadmap chunk2 | **chunk2** |
-| 13 | Graph completeness unknown | `feature_provenance` live count; graph health endpoint exists | **partial** (chunk1) |
+| 12 | ERP / tier-N not disclosed | LIMITATIONS.md + ERP CSV ingest prototype | **done** (chunk2) |
+| 13 | Graph completeness unknown | Graph health endpoint + completeness score | **partial** (chunk2 API; chunk3 dashboard) |
 | 14 | Untrained model silent default | `/health` + `/metrics/model-status`, startup warning, banners | **done** (chunk1) |
 | 15 | Kafka complexity vs demo | Document simplified deploy path | **chunk3** |
 | 16 | SHAP without calibrated model | Demo calibration banner + model_source | **done** (chunk1) |
-| 17 | Public deploy not live | Railway + Vercel per DEPLOY.md | **chunk2** |
+| 17 | Public deploy not live | Railway + Vercel config + DEPLOY_QUICKSTART.md | **done** (chunk2 config) |
 | 18 | Risk % over band in lists | RiskPill band-first + sublabel | **done** (chunk1) |
-| 19 | Live WGI not integrated | Static table documented; live API fetch | **chunk2** |
+| 19 | Live WGI not integrated | Cached WGI fetch script + feature_builder loader | **done** (chunk2) |
 | 20 | AIS / sanctions layers thin | Layer provenance + ingest roadmap | **chunk3** |
-| 21 | Demo GIF missing | Record per docs/DEMO.md | **chunk2** |
+| 21 | Demo GIF missing | Record per docs/DEMO.md + demo-placeholder.md | **done** (chunk2 placeholder) |
 | 22 | Weekly digest LLM unverified | Label as template narrative in METRICS | **chunk3** |
 | 23 | Copilot answers unconstrained | Grounding + disclaimer in CopilotView | **chunk3** |
 | 24 | No single limitations doc | `docs/LIMITATIONS.md` | **done** (chunk1) |
 
-## Chunk 2 (planned)
+## Chunk 2 (PR #10 — done)
 
-- Labeled disruption dataset + `scripts/train_risk_model.py` production artifact
-- ERP CSV ingest prototype / tier-2 edges
-- Live World Bank WGI pull (cached)
-- Railway + Vercel deploy execution
-- Demo GIF
+- `data/disruption_labels.csv` + label-aware `train_risk_model.py`
+- `calibration_status: validated` when model + labels metadata present
+- ERP CSV ingest (`scripts/ingest_erp_csv.py`) + graph health tier/completeness
+- Live WGI cache (`scripts/fetch_wgi_stability.py`, `data/wgi_stability.json`)
+- `frontend/vercel.json`, `railway.toml`, `docs/DEPLOY_QUICKSTART.md`
+- Demo GIF instructions (`docs/assets/demo-placeholder.md`)
 
 ## Chunk 3 (planned)
 
