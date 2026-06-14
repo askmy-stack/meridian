@@ -412,3 +412,37 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 10 — 2026-06-14
+**Duration:** ~2h
+**Phase:** SCRI honesty — Chunk 3 (architecture + UX completion)
+
+### Built
+- **Batch demo path:** `docs/ARCHITECTURE_DEMO.md`, `scripts/pipeline_batch.py`
+- **Multi-index SCRI:** `pillar_scores` on explanation API + SuppliersView pillar mini-bars
+- **Feature layers:** NOAA weather + OpenSanctions stub in `feature_builder` + provenance
+- **Copilot grounding:** graph facts, disclaimer banner, uncertainty fallback
+- **GraphHealthView:** `/ops/graph-health` dashboard (geo, events, tier-2, model status)
+- **Digest honesty:** `narrative_type: template` + Dashboard label
+- PR #11 `feat/flaw-fixes-chunk3`
+
+### State at end
+- 24/24 flaws addressed (3 partial: live AIS, deploy execution, demo GIF recording)
+- Unit tests + frontend build pass without Neo4j
+
+### Decisions made
+- Pillar scores are weighted feature sums — not separate ML models
+- Batch pipeline reuses seed/score scripts — no Kafka shortcut into graph_loader
+
+### Blockers
+- None for Chunk 3 merge
+
+### Next session starts with
+1. Merge PRs #9–#11 (chunk1 → chunk2 → chunk3)
+2. Optional: live deploy per DEPLOY_QUICKSTART.md
+3. Record demo GIF
+
+[OWNER NOTES]
+-

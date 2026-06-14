@@ -43,7 +43,10 @@ export function CopilotView() {
         </p>
         <h1 className="page-title">Intelligence Copilot</h1>
         <p className="mt-2 text-slate-400 max-w-2xl">
-          Natural-language queries mapped to scenarios, suppliers, and historical backtests — template-driven for demo reliability.
+          Graph-grounded template responses only — keyword routing to simulator presets and Neo4j facts.
+        </p>
+        <p className="mt-3 text-xs text-amber-200/80 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2 max-w-2xl">
+          Disclaimer: Not a general LLM. Answers cite graph-backed facts or say &quot;I don&apos;t know&quot; when unmatched.
         </p>
       </header>
 
@@ -92,6 +95,14 @@ export function CopilotView() {
                 <span className="text-sm font-medium text-cyan-300">Copilot</span>
               </div>
               <p className="text-sm text-slate-200 leading-relaxed">{copilotMutation.data.answer}</p>
+              {copilotMutation.data.disclaimer && (
+                <p className="text-xs text-slate-500 mt-2">{copilotMutation.data.disclaimer}</p>
+              )}
+              {copilotMutation.data.graph_facts?.length > 0 && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Graph facts: {copilotMutation.data.graph_facts.join(' · ')}
+                </p>
+              )}
               {copilotMutation.data.suggested_scenario_id && (
                 <Link
                   to="/simulate"
