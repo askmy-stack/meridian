@@ -79,6 +79,17 @@ def main() -> int:
         updated += 1
 
     history_written = _persist_scores_to_timescale(history_records)
+
+    try:
+        from src.rag.indexing import index_suppliers as rag_index_suppliers
+        from src.rag.qdrant_client import get_qdrant_store
+
+        if get_qdrant_store().is_available:
+            rag_index_suppliers(client)
+            logger.info("rag_suppliers_reindexed_after_score")
+    except Exception as exc:
+        logger.warning("rag_suppliers_reindex_skipped", error=str(exc))
+
     print(f"Scored {updated} suppliers (model: {scorer.model_path or 'default'})")
     if history_written:
         print(f"TimescaleDB history rows: {history_written}")

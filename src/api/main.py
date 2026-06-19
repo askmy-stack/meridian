@@ -749,6 +749,9 @@ async def get_supplier_risk_explanation(supplier_id: str):
                 }
                 if interval:
                     payload["score_interval"] = interval.to_dict()
+                payload["related_corpus"] = _supplier_related_corpus(
+                    supplier.name, supplier.country_iso
+                )
                 return payload
         except ImportError:
             logger.info("risk_explanation_demo_mode", supplier_id=supplier_id)
@@ -840,9 +843,10 @@ async def get_supplier_risk_explanation(supplier_id: str):
         }
         if interval:
             payload["score_interval"] = interval.to_dict()
+        payload["related_corpus"] = _supplier_related_corpus(
+            supplier.name, supplier.country_iso
+        )
         return payload
-        
-    except HTTPException:
         raise
     except Exception as e:
         logger.error("risk_explanation_failed", error=str(e), supplier_id=supplier_id)
@@ -892,6 +896,14 @@ async def generate_weekly_digest():
         """
         alert_stats = client.execute_query(alerts_query)
         
+        top_regions = " ".join(
+            {str(e.get("type", "")) for e in (events or [])[:3]}
+        )
+        rag_query = f"weekly risk summary {top_regions}"
+        citations, narrative, narrative_type = _build_digest_narrative(
+            events, risky_suppliers, alert_stats, rag_query
+        )
+
         # Build digest content
         digest = {
             "period": "Last 7 days",
@@ -913,8 +925,9 @@ async def generate_weekly_digest():
                 for s in risky_suppliers[:5]
             ] if risky_suppliers else [],
             "recommendations": _generate_digest_recommendations(risky_suppliers),
-            "narrative": _generate_narrative(events, risky_suppliers, alert_stats),
-            "narrative_type": "template",
+            "narrative": narrative,
+            "narrative_type": narrative_type,
+            "citations": citations,
         }
         
         logger.info("weekly_digest_generated")
@@ -927,6 +940,72 @@ async def generate_weekly_digest():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to generate digest: {str(e)}"
         )
+
+
+def _supplier_related_corpus(supplier_name: str, country_iso: Optional[str]) -> list:
+    """Retrieve citation-only corpus snippets for supplier explanation."""
+    from ..rag.collections import RagCollection, search_collection
+    from ..rag.context_budget import dedupe_by_source
+
+    hits: list = []
+    hits.extend(search_collection(RagCollection.SUPPLIERS, supplier_name, limit=3))
+    region_query = f"{supplier_name} {country_iso or ''} supply chain events"
+    hits.extend(search_collection(RagCollection.EVENTS, region_query, limit=2))
+    deduped = dedupe_by_source(hits, source_key="source")
+    return [
+        {
+            "source": h.get("source", ""),
+            "text": (h.get("text") or "")[:300],
+            "collection": h.get("collection", ""),
+        }
+        for h in deduped
+        if h.get("text")
+    ]
+
+
+def _build_digest_narrative(
+    events: list,
+    suppliers: list,
+    stats: list,
+    rag_query: str,
+) -> tuple:
+    """Build digest narrative — RAG + optional LLM when citations exist."""
+    from ..rag.collections import search_routed
+    from ..rag.context_budget import build_bounded_context, dedupe_by_source
+    from ..rag.llm_compose import llm_compose
+
+    hits = dedupe_by_source(search_routed(rag_query, limit=5), source_key="source")
+    citations = [
+        {
+            "source": h.get("source", ""),
+            "text": (h.get("text") or "")[:300],
+            "collection": h.get("collection", ""),
+            "score": h.get("score"),
+        }
+        for h in hits
+        if h.get("text")
+    ]
+
+    template_narrative = _generate_narrative(events, suppliers, stats)
+    if not citations:
+        return [], template_narrative, "template"
+
+    provider = os.getenv("LLM_PROVIDER", "stub").lower()
+    if provider != "stub":
+        graph_bits = [
+            f"{stats[0].get('total_events', 0)} events" if stats else "0 events",
+            f"top risk: {suppliers[0]['name']}" if suppliers else "no top risk",
+        ]
+        context = build_bounded_context(graph_bits + [c["text"] for c in citations])
+        llm_narrative = llm_compose(
+            "Summarize this week's supply chain risk landscape in 2-3 sentences.",
+            context,
+        )
+        if llm_narrative:
+            return citations, llm_narrative, "rag"
+
+    rag_suffix = f" Corpus context: {citations[0]['text'][:120]}…" if citations else ""
+    return citations, template_narrative + rag_suffix, "rag"
 
 
 def _generate_digest_recommendations(risky_suppliers: list) -> list:

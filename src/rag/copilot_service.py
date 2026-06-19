@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import os
 import re
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
@@ -11,7 +11,9 @@ from typing import Any, Dict, List, Optional, Tuple
 import structlog
 
 from ..graph import get_neo4j_client
-from .collections import search_all
+from .collections import RagCollection, search_routed
+from .context_budget import DEFAULT_CONTEXT_CHAR_BUDGET, build_bounded_context, dedupe_by_source
+from .llm_compose import llm_compose
 
 logger = structlog.get_logger(__name__)
 
@@ -30,7 +32,18 @@ SCENARIO_KEYWORDS = {
     "china-us-trade": ("china", "tariff", "export control"),
 }
 
-# Patterns that ask for numeric risk — must be answered only from graph context
+REGION_KEYWORDS = {
+    "red sea": "Red Sea",
+    "taiwan": "Taiwan",
+    "suez": "Suez",
+    "ukraine": "Ukraine",
+    "russia": "Russia",
+    "hormuz": "Persian Gulf",
+    "china": "China",
+    "europe": "Europe",
+    "semiconductor": "semiconductor",
+}
+
 RISK_NUMBER_PATTERN = re.compile(
     r"\b(\d{1,3})\s*%\s*(risk|scri|score)|"
     r"risk\s*(score|level)\s*(is|of|at)\s*(\d+\.?\d*)|"
@@ -83,17 +96,101 @@ class CopilotResult:
         }
 
 
-def _graph_context(client: Any) -> Tuple[List[str], List[str], Dict[str, float]]:
-    """Return supplier names, fact strings, and known risk scores from Neo4j."""
-    suppliers = client.execute_query(
+def _extract_question_keywords(question: str) -> List[str]:
+    """Extract region/supplier tokens from the user question."""
+    q = question.lower()
+    keywords: List[str] = []
+    for token, _label in REGION_KEYWORDS.items():
+        if token in q:
+            keywords.append(token)
+    for word in re.findall(r"[a-z]{4,}", q):
+        if word not in keywords:
+            keywords.append(word)
+    return keywords[:8]
+
+
+def _graph_context_for_question(
+    client: Any,
+    question: str,
+) -> Tuple[List[str], List[str], Dict[str, float]]:
+    """Return supplier names, fact strings, and risk_map tailored to the question."""
+    keywords = _extract_question_keywords(question)
+    names: List[str] = []
+    risk_map: Dict[str, float] = {}
+
+    if keywords:
+        for kw in keywords[:3]:
+            rows = client.execute_query(
+                """
+                MATCH (s:Supplier)
+                WHERE toLower(s.name) CONTAINS $kw
+                   OR toLower(coalesce(s.country_iso, '')) CONTAINS $kw
+                   OR toLower(coalesce(s.industry, '')) CONTAINS $kw
+                RETURN s.name AS name, s.risk_score AS risk
+                ORDER BY s.risk_score DESC
+                LIMIT 5
+                """,
+                {"kw": kw},
+            )
+            for row in rows:
+                name = row.get("name")
+                if name and name not in names:
+                    names.append(name)
+                    if row.get("risk") is not None:
+                        risk_map[name] = float(row["risk"])
+
+        event_rows = client.execute_query(
+            """
+            MATCH (e:Event)-[:AFFECTS]->(s:Supplier)
+            WHERE any(kw IN $keywords WHERE
+                toLower(coalesce(e.region, '')) CONTAINS kw
+                OR toLower(coalesce(e.title, '')) CONTAINS kw
+            )
+            RETURN DISTINCT e.title AS title, e.region AS region,
+                   collect(DISTINCT s.name)[0..3] AS suppliers
+            LIMIT 5
+            """,
+            {"keywords": keywords},
+        )
+        event_facts = [
+            f"Event '{r.get('title', '')}' in {r.get('region', '')} "
+            f"affects {', '.join(r.get('suppliers') or [])}"
+            for r in event_rows
+            if r.get("title")
+        ]
+    else:
+        event_facts = []
+
+    if not names:
+        suppliers = client.execute_query(
+            """
+            MATCH (s:Supplier)
+            WHERE s.risk_score >= 0.7
+            RETURN s.name AS name, s.risk_score AS risk
+            ORDER BY s.risk_score DESC
+            LIMIT 5
+            """
+        )
+        for row in suppliers:
+            name = row.get("name")
+            if name:
+                names.append(name)
+                if row.get("risk") is not None:
+                    risk_map[name] = float(row["risk"])
+
+    choke_rows = client.execute_query(
         """
-        MATCH (s:Supplier)
-        WHERE s.risk_score >= 0.7
-        RETURN s.name AS name, s.risk_score AS risk
-        ORDER BY s.risk_score DESC
-        LIMIT 5
-        """
+        MATCH (c:Chokepoint)
+        WHERE any(kw IN $keywords WHERE toLower(c.name) CONTAINS kw)
+        RETURN c.name AS name, c.region AS region
+        LIMIT 3
+        """,
+        {"keywords": keywords or ["suez", "red", "taiwan"]},
     )
+    choke_facts = [
+        f"Chokepoint {r.get('name')} ({r.get('region', '')})" for r in choke_rows if r.get("name")
+    ]
+
     stats = client.execute_query(
         """
         OPTIONAL MATCH (s:Supplier) WITH count(s) AS suppliers
@@ -104,36 +201,41 @@ def _graph_context(client: Any) -> Tuple[List[str], List[str], Dict[str, float]]
         """
     )
     row = stats[0] if stats else {}
-    names = [r["name"] for r in suppliers]
-    risk_map = {r["name"]: float(r["risk"]) for r in suppliers if r.get("risk") is not None}
     facts = [
         f"{row.get('suppliers', 0)} suppliers in graph",
         f"{row.get('events', 0)} events materialized",
         f"{row.get('affected', 0)} suppliers linked to events",
     ]
-    return names, facts, risk_map
+    facts.extend(event_facts[:3])
+    facts.extend(choke_facts[:2])
+    return names[:8], facts, risk_map
 
 
 def _match_scenario(question: str) -> Optional[str]:
     q = question.lower()
-    for scenario_id, keywords in SCENARIO_KEYWORDS.items():
-        if any(word in q for word in keywords):
+    for scenario_id, kws in SCENARIO_KEYWORDS.items():
+        if any(word in q for word in kws):
             return scenario_id
     return None
 
 
-def _retrieve_citations(question: str, limit: int = 5) -> List[Citation]:
-    hits = search_all(question, limit_per_collection=2)[:limit]
-    return [
+def _retrieve_citations(question: str, limit: int = 5) -> Tuple[List[Citation], float]:
+    """Retrieve routed citations; return (citations, retrieval_ms)."""
+    t0 = time.perf_counter()
+    hits = search_routed(question, limit=limit)
+    deduped = dedupe_by_source(hits, source_key="source")
+    citations = [
         Citation(
             source=hit.get("source", "unknown"),
             text=hit.get("text", "")[:400],
             collection=hit.get("collection", ""),
             score=hit.get("score"),
         )
-        for hit in hits
+        for hit in deduped
         if hit.get("text")
     ]
+    elapsed_ms = (time.perf_counter() - t0) * 1000
+    return citations, elapsed_ms
 
 
 def _format_risk_from_context(question: str, risk_map: Dict[str, float]) -> Optional[str]:
@@ -190,89 +292,20 @@ def _stub_compose(
     )
 
 
-def _ollama_compose(question: str, context: str) -> Optional[str]:
-    """Optional Ollama synthesis — must not invent risk scores."""
-    base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-    model = os.getenv("OLLAMA_MODEL", "gemma2:2b")
-    try:
-        import requests
-
-        prompt = (
-            "You are a supply chain risk analyst copilot. Answer ONLY from the context below. "
-            "NEVER invent numeric risk scores or SCRI percentages. "
-            "If context lacks data, say you don't know.\n\n"
-            f"Context:\n{context}\n\nQuestion: {question}\n\nAnswer:"
-        )
-        resp = requests.post(
-            f"{base_url}/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
-            timeout=30,
-        )
-        resp.raise_for_status()
-        return str(resp.json().get("response", "")).strip()
-    except Exception as exc:
-        logger.info("ollama_compose_skipped", error=str(exc))
-        return None
-
-
-def _openai_compose(question: str, context: str) -> Optional[str]:
-    """Optional OpenAI synthesis — must not invent risk scores."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return None
-    try:
-        import requests
-
-        resp = requests.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={
-                "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Answer ONLY from provided context. Never invent risk scores. "
-                            "Cite sources when possible."
-                        ),
-                    },
-                    {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {question}"},
-                ],
-                "max_tokens": 400,
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        choices = resp.json().get("choices") or []
-        if choices:
-            return str(choices[0]["message"]["content"]).strip()
-    except Exception as exc:
-        logger.info("openai_compose_skipped", error=str(exc))
-    return None
-
-
-def _llm_compose(question: str, context: str) -> Optional[str]:
-    provider = os.getenv("LLM_PROVIDER", "stub").lower()
-    if provider == "ollama":
-        return _ollama_compose(question, context)
-    if provider == "openai":
-        return _openai_compose(question, context)
-    return None
-
-
 def answer_copilot(question: str) -> CopilotResult:
     """Run grounded copilot pipeline."""
     client = get_neo4j_client()
-    names, graph_facts, risk_map = _graph_context(client)
+    names, graph_facts, risk_map = _graph_context_for_question(client, question)
     scenario_id = _match_scenario(question)
-    citations = _retrieve_citations(question)
+    citations, retrieval_ms = _retrieve_citations(question)
 
-    context_parts = graph_facts + [c.text for c in citations]
-    context = "\n".join(context_parts)
+    context = build_bounded_context(
+        graph_facts + [c.text for c in citations],
+        budget=DEFAULT_CONTEXT_CHAR_BUDGET,
+    )
 
-    llm_answer = _llm_compose(question, context)
+    llm_answer = llm_compose(question, context)
     if llm_answer:
-        # Strip any hallucinated percentage risk claims not in risk_map
         if RISK_NUMBER_PATTERN.search(llm_answer) and not risk_map:
             llm_answer = _format_risk_from_context(question, risk_map) or (
                 "I cannot confirm numeric risk scores from the available context."
@@ -285,6 +318,15 @@ def answer_copilot(question: str) -> CopilotResult:
         )
 
     answer = re.sub(r"\*\*", "", answer)
+    grounded = grounded and bool(citations or graph_facts)
+
+    logger.info(
+        "copilot_answer",
+        grounded=grounded,
+        citations_count=len(citations),
+        retrieval_ms=round(retrieval_ms, 2),
+        scenario_id=scenario_id,
+    )
 
     return CopilotResult(
         answer=answer,

@@ -46,6 +46,19 @@ def run_vessel_loader(bootstrap_servers: str, max_messages: int) -> int:
     return 0 if stats["errors"] == 0 else 1
 
 
+def run_rag_indexer(bootstrap_servers: str, max_messages: int) -> int:
+    from .rag_indexer import RagIndexerConsumer
+
+    consumer = RagIndexerConsumer(bootstrap_servers=bootstrap_servers)
+    stats = consumer.run(max_messages=max_messages)
+    logger.info("rag_indexer_complete", **stats)
+    print(
+        f"RAG indexer: indexed={stats['indexed']} skipped={stats['skipped']} "
+        f"errors={stats['errors']}"
+    )
+    return 0 if stats["errors"] == 0 else 1
+
+
 def run_entity_resolution(bootstrap_servers: str, max_messages: int) -> int:
     from .entity_resolution import EntityResolutionConsumer
 
@@ -60,7 +73,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Meridian Kafka consumers")
     parser.add_argument(
         "consumer",
-        choices=["graph-loader", "vessel-loader", "entity-resolution"],
+        choices=["graph-loader", "vessel-loader", "entity-resolution", "rag-indexer"],
         help="Consumer to run",
     )
     parser.add_argument(
@@ -81,6 +94,8 @@ def main() -> int:
         return run_graph_loader(args.bootstrap_servers, max_messages or 500)
     if args.consumer == "vessel-loader":
         return run_vessel_loader(args.bootstrap_servers, max_messages or 500)
+    if args.consumer == "rag-indexer":
+        return run_rag_indexer(args.bootstrap_servers, max_messages or 500)
     return run_entity_resolution(args.bootstrap_servers, max_messages or 500)
 
 
