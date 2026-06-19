@@ -108,6 +108,12 @@ rescore-recent:  ## Rescore suppliers with new :AFFECTS links (RESCORE_LOOKBACK_
 index-rag:  ## Index Neo4j events + METRICS.md + suppliers into Qdrant
 	$(PY) scripts/index_rag_corpus.py
 
+index-graph-communities:  ## Index supplier graph communities into Qdrant (GraphRAG)
+	$(PY) scripts/index_graph_communities.py
+
+rag-indexer:  ## Stream Kafka events into Qdrant (set PIPELINE_MAX_MESSAGES)
+	$(PY) -m src.consumers rag-indexer --max-messages $(or $(PIPELINE_MAX_MESSAGES),500)
+
 export-snapshots:  ## Export supplier graph snapshot CSV for TGN training
 	$(PY) scripts/export_graph_snapshots.py
 
@@ -144,6 +150,9 @@ portfolio-ready:  ## Full portfolio bootstrap: WGI → train → seed → score 
 	-@$(MAKE) score-suppliers
 	@echo "Step 5/5 export-snapshots (requires Neo4j — skip if unavailable)"
 	-@$(MAKE) export-snapshots
+	@echo "Optional: index-rag + index-graph-communities when Qdrant is up"
+	-@$(MAKE) index-rag
+	-@$(MAKE) index-graph-communities
 	@echo "portfolio-ready complete — see README Quick start"
 
 check-deploy:  ## Validate deploy config files exist

@@ -127,6 +127,21 @@ services:
       timeout: 5s
       retries: 5
 
+  # RAG indexer — streams Kafka conflict events into Qdrant
+  rag-indexer:
+    build: .
+    command: python -m src.consumers rag-indexer --max-messages 0
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - QDRANT_URL=http://qdrant:6333
+      - RAG_EMBED_MODE=${RAG_EMBED_MODE:-hash}
+    depends_on:
+      kafka:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Kafka UI for monitoring
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.1

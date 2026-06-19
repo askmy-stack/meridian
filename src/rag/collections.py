@@ -1,10 +1,11 @@
-"""Qdrant collection helpers — events, suppliers, methodology."""
+"""Qdrant collection helpers — events, suppliers, methodology, scenarios, communities."""
 
 from __future__ import annotations
 
 import hashlib
+import re
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import structlog
 
@@ -13,11 +14,27 @@ from .qdrant_client import get_qdrant_store
 
 logger = structlog.get_logger(__name__)
 
+METHODOLOGY_KEYWORDS = re.compile(
+    r"\b(how\s+calculated|methodology|scri|conformal|shap|xgboost|metrics)\b",
+    re.IGNORECASE,
+)
+BACKTEST_KEYWORDS = re.compile(
+    r"\b(suez|ukraine|ever\s+given|backtest|2021|2022|historical)\b",
+    re.IGNORECASE,
+)
+COMMUNITY_KEYWORDS = re.compile(
+    r"\b(region|sector|cluster|community|chokepoint|corridor|geography)\b",
+    re.IGNORECASE,
+)
+
 
 class RagCollection(str, Enum):
     EVENTS = "meridian_events"
     SUPPLIERS = "meridian_suppliers"
     METHODOLOGY = "meridian_methodology"
+    SCENARIOS = "meridian_scenarios"
+    BACKTESTS = "meridian_backtests"
+    GRAPH_COMMUNITIES = "meridian_graph_communities"
 
 
 def _stable_id(collection: RagCollection, key: str) -> int:
@@ -85,8 +102,48 @@ def search_collection(
     ]
 
 
+def _route_collections(query: str) -> List[Tuple[RagCollection, int]]:
+    """Keyword-based collection routing with per-collection limits."""
+    defaults: List[Tuple[RagCollection, int]] = [
+        (RagCollection.EVENTS, 2),
+        (RagCollection.SUPPLIERS, 2),
+        (RagCollection.METHODOLOGY, 1),
+        (RagCollection.SCENARIOS, 1),
+        (RagCollection.BACKTESTS, 1),
+        (RagCollection.GRAPH_COMMUNITIES, 1),
+    ]
+    if METHODOLOGY_KEYWORDS.search(query):
+        return [
+            (RagCollection.METHODOLOGY, 4),
+            (RagCollection.EVENTS, 1),
+            (RagCollection.SUPPLIERS, 1),
+        ]
+    if BACKTEST_KEYWORDS.search(query):
+        return [
+            (RagCollection.BACKTESTS, 4),
+            (RagCollection.SCENARIOS, 2),
+            (RagCollection.EVENTS, 1),
+        ]
+    if COMMUNITY_KEYWORDS.search(query):
+        return [
+            (RagCollection.GRAPH_COMMUNITIES, 3),
+            (RagCollection.SUPPLIERS, 2),
+            (RagCollection.EVENTS, 1),
+        ]
+    return defaults
+
+
+def search_routed(query: str, limit: int = 8) -> List[Dict[str, Any]]:
+    """Search collections with simple keyword routing and score merge."""
+    results: List[Dict[str, Any]] = []
+    for collection, per_limit in _route_collections(query):
+        results.extend(search_collection(collection, query, limit=per_limit))
+    results.sort(key=lambda r: r.get("score", 0), reverse=True)
+    return results[:limit]
+
+
 def search_all(query: str, limit_per_collection: int = 3) -> List[Dict[str, Any]]:
-    """Search events, suppliers, and methodology collections."""
+    """Search all collections (flat merge)."""
     results: List[Dict[str, Any]] = []
     for collection in RagCollection:
         results.extend(search_collection(collection, query, limit=limit_per_collection))

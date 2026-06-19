@@ -81,13 +81,19 @@ def test_sanctions_layer() -> None:
 
 
 def test_copilot_maps_red_sea() -> None:
+    def _mock_neo4j(query: str, params: object = None) -> list:
+        if "count(s) AS suppliers" in query or (
+            "OPTIONAL MATCH (s:Supplier)" in query and "affected" in query
+        ):
+            return [{"suppliers": 10, "events": 4, "affected": 3}]
+        if "risk_score >= 0.7" in query:
+            return [{"name": "Fab A", "risk": 0.9}]
+        return []
+
     with patch("src.rag.copilot_service.get_neo4j_client") as mock_get, patch(
-        "src.rag.copilot_service.search_all", return_value=[]
+        "src.rag.copilot_service.search_routed", return_value=[]
     ):
-        mock_get.return_value.execute_query.side_effect = [
-            [{"name": "Fab A", "risk": 0.9}],
-            [{"suppliers": 10, "events": 4, "affected": 3}],
-        ]
+        mock_get.return_value.execute_query.side_effect = _mock_neo4j
         response = client.post(
             "/intelligence/copilot",
             json={"question": "What if Red Sea shipping is attacked?"},
