@@ -21,10 +21,19 @@ import {
 } from '../api/client';
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
+import { CountryPriceTable } from '../components/ui/CountryPriceTable';
 import { InteractiveWorldMap } from '../components/map/InteractiveWorldMap';
 import { LoadingState } from '../components/ui/LoadingState';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
+import { RegionRiskMap } from '../components/ui/RegionRiskMap';
+import { SCENARIO_COUNTRY_OVERLAY } from '../data/sectorIntelligence';
+import {
+  ERRORS,
+  METRICS_URL,
+  NAV_LABELS,
+} from '../lib/uiCopy';
 
 function kpiDefinition(methodology, id, fallback) {
   return methodology?.kpis?.find((k) => k.id === id)?.definition ?? fallback;
@@ -59,7 +68,7 @@ export function SimulationView() {
       setResult(await runSimulationScenario(scenarioId));
     } catch {
       setResult(null);
-      setRunError('Simulation failed — check API logs and Neo4j connectivity.');
+      setRunError(ERRORS.simulationRun);
     } finally {
       setRunningId(null);
     }
@@ -77,43 +86,42 @@ export function SimulationView() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
-      <header className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-2 mb-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
-              Scenario Engine
-            </p>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-300 border border-amber-500/25">
-              BFS · Monte Carlo · SCRI context
-            </span>
-          </div>
-          <h1 className="page-title">Disruption Simulator</h1>
-          <p className="mt-2 text-slate-400 max-w-2xl">
-            Trade disruptions, port closures, sanctions, conflicts, shortages — BFS propagation plus
-            1,000-iteration Monte Carlo with map visualization.
-          </p>
-          <a
-            href="https://github.com/askmy-stack/meridian/blob/main/docs/METRICS.md#simulation-metrics"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 mt-3 text-xs text-amber-400 hover:text-amber-300"
-          >
-            <BookOpen className="h-3.5 w-3.5" />
-            Simulation metrics methodology
-          </a>
-        </div>
-        <Link to="/map" className="btn-ghost shrink-0">
-          <Globe className="h-4 w-4" />
-          Open world map
-        </Link>
-      </header>
+      <PageHeader
+        eyebrow="Scenario engine"
+        title={NAV_LABELS.simulate}
+        subtitle="Trade disruptions, port closures, sanctions, and conflicts — BFS propagation plus 1,000-iteration Monte Carlo with regional impact maps."
+        badges={['BFS · Monte Carlo', 'Timeline-linked recovery']}
+        gradient="amber"
+        actions={
+          <>
+            <Link to="/timeline" className="btn-ghost">
+              <Clock className="h-4 w-4" />
+              View timeline
+            </Link>
+            <Link to="/map" className="btn-ghost shrink-0">
+              <Globe className="h-4 w-4" />
+              World map
+            </Link>
+          </>
+        }
+      >
+        <a
+          href={`${METRICS_URL}#simulation-metrics`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300"
+        >
+          <BookOpen className="h-3.5 w-3.5" />
+          Simulation metrics methodology
+        </a>
+      </PageHeader>
 
       {isLoading && <LoadingState />}
       {isError && (
         <ErrorBanner
-          message="Could not load simulation scenarios."
+          message={ERRORS.simulation}
           onRetry={() => refetch()}
         />
       )}
@@ -187,7 +195,7 @@ export function SimulationView() {
         )}
       </Panel>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {scenarios.map((scenario) => (
           <article
             key={scenario.id}
@@ -233,7 +241,7 @@ export function SimulationView() {
             title={`Impact: ${result.scenario?.name}`}
             subtitle="BFS propagation + Monte Carlo · complements SCRI point scores"
           >
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
               {[
                 {
                   icon: Users,
@@ -241,6 +249,30 @@ export function SimulationView() {
                   val: result.propagation?.suppliers_affected ?? 0,
                   sub: null,
                   tooltip: null,
+                },
+                {
+                  icon: Globe,
+                  label: 'Regions affected',
+                  val: result.scenario?.region || '—',
+                  sub: `${(SCENARIO_COUNTRY_OVERLAY[result.scenario?.id] || []).length} countries (demo)`,
+                  tooltip: null,
+                },
+                {
+                  icon: Users,
+                  label: 'People impacted',
+                  val: `${(
+                    (SCENARIO_COUNTRY_OVERLAY[result.scenario?.id] || []).reduce(
+                      (sum, c) => sum + (c.populationAtRisk || 0),
+                      0,
+                    ) || result.propagation?.suppliers_affected * 0.05
+                  ).toFixed(1)}M`,
+                  sub: 'Demo population-at-risk estimate',
+                  tooltip: (
+                    <MetricTooltip
+                      label="Population at risk"
+                      definition="Template estimate from regional exposure bands — not census-validated."
+                    />
+                  ),
                 },
                 {
                   icon: TrendingDown,
@@ -259,7 +291,7 @@ export function SimulationView() {
                   icon: ShieldAlert,
                   label: 'Disruption prob.',
                   val: `${((result.monte_carlo?.disruption_probability ?? 0) * 100).toFixed(1)}%`,
-                  sub: null,
+                  sub: `Severity ${((result.scenario?.severity ?? 0) * 100).toFixed(0)}%`,
                   tooltip: (
                     <MetricTooltip
                       label="Disruption probability"
@@ -274,35 +306,21 @@ export function SimulationView() {
                 },
                 {
                   icon: Clock,
-                  label: 'Delay band (p10–p90)',
-                  val: `${result.monte_carlo?.p10_delay_days ?? 0}–${result.monte_carlo?.p90_delay_days ?? 0}d`,
-                  sub: `p50 ${result.monte_carlo?.p50_delay_days ?? 0}d`,
+                  label: 'Timeline recovery',
+                  val: `${result.map_overlay?.timeline_projection_days ?? result.propagation?.recovery_time_days ?? 0}d`,
+                  sub: 'Linked to geopolitical timeline',
                   tooltip: (
                     <MetricTooltip
-                      label="Delay percentiles"
-                      definition="Monte Carlo delay distribution — p10/p50/p90 days across disrupted iterations (not a single point estimate)."
-                      reference="docs/METRICS.md#monte-carlo-financial-exposure"
-                    />
-                  ),
-                },
-                {
-                  icon: Clock,
-                  label: 'Recovery est.',
-                  val: `${result.propagation?.recovery_time_days ?? 0}d`,
-                  sub: null,
-                  tooltip: (
-                    <MetricTooltip
-                      label="Graph recovery"
-                      definition="BFS propagation recovery estimate from knowledge graph — complements MC bands."
-                      reference="docs/METRICS.md#propagation-impact"
+                      label="Recovery projection"
+                      definition="Estimated days to baseline — appears as recovery events on the timeline view."
                     />
                   ),
                 },
               ].map(({ icon: Icon, label, val, sub, tooltip }) => (
                 <div key={label} className="stat-card text-center py-4">
                   <Icon className="h-5 w-5 text-blue-400 mx-auto mb-2" aria-hidden />
-                  <p className="text-2xl font-bold text-white">{val}</p>
-                  {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+                  <p className="text-lg xl:text-xl font-bold text-white leading-tight">{val}</p>
+                  {sub && <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">{sub}</p>}
                   <p className="text-xs text-slate-500 mt-1 inline-flex items-center justify-center gap-0.5">
                     {label}
                     {tooltip}
@@ -313,8 +331,11 @@ export function SimulationView() {
             <p className="text-sm text-slate-400">
               Monte Carlo: {result.monte_carlo?.iterations ?? 1000} iterations · Expected duration{' '}
               {result.monte_carlo?.expected_duration_days ?? 0} days (mean of disrupted runs) · Revenue band p50 $
-              {Number(result.monte_carlo?.p50_revenue_at_risk ?? 0).toLocaleString()} · Timeline projection{' '}
-              {result.map_overlay?.timeline_projection_days ?? 0} days to baseline recovery.
+              {Number(result.monte_carlo?.p50_revenue_at_risk ?? 0).toLocaleString()} ·{' '}
+              <Link to="/timeline" className="text-amber-400 hover:text-amber-300">
+                View {result.map_overlay?.timeline_projection_days ?? 0}-day recovery on timeline
+              </Link>
+              .
               {result.impact_summary?.headline && (
                 <span className="block mt-2 text-slate-300">{result.impact_summary.headline}</span>
               )}
@@ -322,12 +343,28 @@ export function SimulationView() {
           </Panel>
 
           {result.map_overlay && (
-            <Panel title="Propagation on map">
+            <Panel title="Propagation on map" subtitle="Epicenter and affected suppliers from graph BFS">
               <InteractiveWorldMap
                 layers={{}}
                 simulationOverlay={result.map_overlay}
                 height={400}
               />
+            </Panel>
+          )}
+
+          {(SCENARIO_COUNTRY_OVERLAY[result.scenario?.id] || []).length > 0 && (
+            <Panel
+              title="Regional price impact"
+              subtitle="Country risk bands and price indices — demo template data"
+            >
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <RegionRiskMap
+                  countries={SCENARIO_COUNTRY_OVERLAY[result.scenario?.id]}
+                  height={360}
+                  title={result.scenario?.name}
+                />
+                <CountryPriceTable countries={SCENARIO_COUNTRY_OVERLAY[result.scenario?.id]} />
+              </div>
             </Panel>
           )}
 
@@ -348,6 +385,8 @@ export function SimulationView() {
           )}
         </>
       )}
+
+      <PageFooterNote note="Monte Carlo disruption probability is a simulation metric — distinct from supplier SCRI modelled index." />
     </div>
   );
 }

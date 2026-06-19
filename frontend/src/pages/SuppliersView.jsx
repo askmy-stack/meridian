@@ -1,14 +1,24 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { Factory, Search, ShieldAlert, TrendingUp } from 'lucide-react';
+import { Factory, GitBranch, Layers, Search, ShieldAlert, TrendingUp } from 'lucide-react';
 import { fetchSuppliers, fetchSupplierExplanation, fetchSupplierForecast } from '../api/client';
+import { inferSupplierSector, SECTOR_PROFILES } from '../data/sectorIntelligence';
 import { DemoBanner } from '../components/DemoBanner';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { MetricTooltip } from '../components/ui/MetricTooltip';
 import { LoadingState } from '../components/ui/LoadingState';
+import { PageFooterNote, PageHeader } from '../components/ui/PageHeader';
 import { Panel } from '../components/ui/Panel';
 import { RiskBar, RiskPill } from '../components/ui/RiskDisplay';
 import { calibrationSublabel, useMethodology } from '../hooks/useMethodology';
+import {
+  ERRORS,
+  LOADING,
+  NAV_LABELS,
+  SCRI_SUBLABEL,
+  SCRI_TOOLTIP,
+} from '../lib/uiCopy';
 import { riskColor, formatRiskPercent, riskLabel } from '../lib/risk';
 
 const FORECAST_HORIZONS = [7, 14, 30];
@@ -16,6 +26,7 @@ const FORECAST_HORIZONS = [7, 14, 30];
 export function SuppliersView() {
   const [selectedId, setSelectedId] = useState(null);
   const [search, setSearch] = useState('');
+  const [sectorFilter, setSectorFilter] = useState('all');
   const [forecastHorizon, setForecastHorizon] = useState(14);
 
   const suppliersQuery = useQuery(['suppliers'], () => fetchSuppliers({ limit: 100 }));
@@ -32,29 +43,75 @@ export function SuppliersView() {
   const { data: methodology } = useMethodology();
   const calLabel = calibrationSublabel(methodology);
 
-  const suppliers = (suppliersQuery.data?.suppliers ?? []).filter(
-    (s) =>
+  const enrichedSuppliers = (suppliersQuery.data?.suppliers ?? []).map((s) => ({
+    ...s,
+    sector: inferSupplierSector(s.name, s.industry),
+    tier: s.tier ?? 1,
+  }));
+
+  const suppliers = enrichedSuppliers.filter((s) => {
+    const matchesSearch =
       !search ||
       s.name?.toLowerCase().includes(search.toLowerCase()) ||
-      s.country_iso?.toLowerCase().includes(search.toLowerCase()),
-  );
+      s.country_iso?.toLowerCase().includes(search.toLowerCase());
+    const matchesSector = sectorFilter === 'all' || s.sector === sectorFilter;
+    return matchesSearch && matchesSector;
+  });
+
+  const selected = enrichedSuppliers.find((s) => s.id === selectedId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       <DemoBanner />
-      <div>
-        <h1 className="page-title">Supplier Registry</h1>
-        <p className="mt-2 text-slate-400">
-          SCRI scores with SHAP explainability and TGN risk trajectory
-        </p>
-      </div>
+
+      <PageHeader
+        eyebrow="Supplier registry"
+        title={NAV_LABELS.suppliers}
+        subtitle="SCRI modelled index with SHAP explainability, sector assignment, and supply-chain tier — aligned with sector dashboard taxonomy."
+        badges={['XGBoost · SHAP', `${suppliers.length} visible`]}
+        gradient="blue"
+        actions={
+          <Link to="/sectors" className="btn-ghost">
+            <Layers className="h-4 w-4" />
+            Sector dashboard
+          </Link>
+        }
+      />
 
       {suppliersQuery.isError && (
         <ErrorBanner
-          message="Could not load suppliers — ensure Neo4j is seeded (`make seed-all`)."
+          message={ERRORS.suppliers}
           onRetry={() => suppliersQuery.refetch()}
         />
       )}
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setSectorFilter('all')}
+          className={`px-3 py-1.5 rounded-lg text-xs border ${
+            sectorFilter === 'all'
+              ? 'border-blue-500/50 bg-blue-500/15 text-blue-200'
+              : 'border-slate-700 text-slate-400'
+          }`}
+        >
+          All sectors
+        </button>
+        {Object.entries(SECTOR_PROFILES).map(([key, profile]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setSectorFilter(key)}
+            className={`px-3 py-1.5 rounded-lg text-xs border capitalize ${
+              sectorFilter === key
+                ? 'border-violet-500/50 bg-violet-500/15 text-violet-200'
+                : 'border-slate-700 text-slate-400'
+            }`}
+          >
+            {profile.label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <Panel className="lg:col-span-2" title="Suppliers" subtitle={`${suppliers.length} in graph`}>
@@ -68,14 +125,14 @@ export function SuppliersView() {
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/50 border border-slate-700 text-sm text-white placeholder:text-slate-500 focus:border-blue-500/50 focus:outline-none"
             />
           </div>
-          {suppliersQuery.isLoading && <LoadingState />}
+          {suppliersQuery.isLoading && <LoadingState label={LOADING.suppliers} />}
           <div className="space-y-2 max-h-[520px] overflow-y-auto pr-1">
             {suppliers.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setSelectedId(s.id)}
-                className={`risk-list-row ${
+                className={`risk-list-row min-h-[4.5rem] ${
                   selectedId === s.id
                     ? 'border-blue-500/50 bg-blue-500/10'
                     : 'border-slate-700/50 hover:border-slate-600 hover:bg-slate-800/30'
@@ -83,9 +140,18 @@ export function SuppliersView() {
               >
                 <div className="risk-list-body min-w-0">
                   <p className="risk-list-title">{s.name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 truncate">
-                    {s.country_iso} · {s.city}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                    <span className="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-violet-500/30 text-violet-300/90">
+                      {SECTOR_PROFILES[s.sector]?.label || s.sector}
+                    </span>
+                    <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
+                      <GitBranch className="h-3 w-3" />
+                      Tier {s.tier}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {s.country_iso} · {s.city}
+                    </span>
+                  </div>
                   {s.risk_score != null && (
                     <RiskBar score={s.risk_score} className="mt-1.5 sm:mt-2 md:hidden" />
                   )}
@@ -101,7 +167,7 @@ export function SuppliersView() {
         <Panel
           className="lg:col-span-3"
           title="SCRI explanation"
-          subtitle={selectedId ? 'SHAP feature contributions' : 'Select a supplier'}
+          subtitle={selectedId ? `${selected?.name} · Tier ${selected?.tier ?? 1}` : 'Select a supplier'}
         >
           {!selectedId && (
             <div className="flex flex-col items-center py-16 text-slate-500">
@@ -112,12 +178,28 @@ export function SuppliersView() {
           {selectedId && explanationQuery.isLoading && <LoadingState />}
           {selectedId && explanationQuery.isError && (
             <ErrorBanner
-              message="Could not load SCRI explanation for this supplier."
+              message={ERRORS.supplierExplanation}
               onRetry={() => explanationQuery.refetch()}
             />
           )}
           {explanationQuery.data && (
             <div className="space-y-6">
+              {selected && (
+                <div className="flex flex-wrap gap-2">
+                  <span className="text-xs px-2 py-1 rounded-lg border border-violet-500/30 text-violet-300">
+                    {SECTOR_PROFILES[selected.sector]?.label}
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded-lg border border-slate-600 text-slate-400">
+                    Tier {selected.tier} supplier
+                  </span>
+                  {selected.parent_id && (
+                    <span className="text-xs px-2 py-1 rounded-lg border border-slate-600 text-slate-400">
+                      Reports to {selected.parent_id}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div className="flex flex-wrap items-end gap-3 sm:gap-4">
                 <div>
                   <p
@@ -127,7 +209,7 @@ export function SuppliersView() {
                     {riskLabel(explanationQuery.data.risk_score)}
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    {formatRiskPercent(explanationQuery.data.risk_score)}% modelled index
+                    {formatRiskPercent(explanationQuery.data.risk_score)}% {SCRI_SUBLABEL.toLowerCase()}
                     {explanationQuery.data.score_interval && (
                       <span className="text-slate-400">
                         {' '}
@@ -148,7 +230,7 @@ export function SuppliersView() {
                 />
                 <MetricTooltip
                   label="SCRI"
-                  definition="Supply Chain Risk Index — band-first modelled disruption exposure (0–100% secondary)."
+                  definition={SCRI_TOOLTIP}
                   limitations={methodology?.limitations}
                   reference="docs/LIMITATIONS.md"
                 />
@@ -169,12 +251,7 @@ export function SuppliersView() {
                       <p className="text-lg font-semibold text-white tabular-nums">
                         {Math.round(score * 100)}%
                       </p>
-                      <div className="risk-bar mt-1.5 h-1">
-                        <div
-                          className="risk-bar-fill bg-gradient-to-r from-cyan-500 to-blue-500"
-                          style={{ width: `${Math.round(score * 100)}%` }}
-                        />
-                      </div>
+                      <RiskBar score={score} className="mt-1.5" />
                     </div>
                   ))}
                 </div>
@@ -254,6 +331,8 @@ export function SuppliersView() {
           )}
         </Panel>
       </div>
+
+      <PageFooterNote />
     </div>
   );
 }
