@@ -847,6 +847,7 @@ async def get_supplier_risk_explanation(supplier_id: str):
             supplier.name, supplier.country_iso
         )
         return payload
+    except HTTPException:
         raise
     except Exception as e:
         logger.error("risk_explanation_failed", error=str(e), supplier_id=supplier_id)
