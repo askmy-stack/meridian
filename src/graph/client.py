@@ -43,7 +43,7 @@ class Neo4jClient:
         """
         self.uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7688")
         self.username = username or os.getenv("NEO4J_USER", "neo4j")
-        self.password = password or os.getenv("NEO4J_PASSWORD", "password")
+        self.password = password or os.getenv("NEO4J_PASSWORD", "meridian_password")
         self.max_pool_size = max_connection_pool_size
         self.connection_timeout = connection_timeout
         
