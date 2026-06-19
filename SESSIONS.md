@@ -592,3 +592,36 @@
 
 [OWNER NOTES]
 -
+
+---
+
+## Session 15 — 2026-06-19
+**Duration:** ~30m
+**Phase:** Post-merge — RAG Phases 1–6 + frontend UI overhaul
+
+### Built
+- Merged **PR #18** (frontend UI overhaul) and **PR #19** (RAG Phases 1–6, GraphRAG, Kafka rag_indexer)
+- `main` at `527817e` — no open PRs on `askmy-stack/meridian`
+
+### State at end
+- **19/19** targeted RAG + Phase B unit tests pass (`RAG_EMBED_MODE=hash`, `LLM_PROVIDER=stub`)
+- **116 passed** broader unit suite (excl. neo4j + xgboost collectors); 1 fail `test_timescale_writer` (missing `asyncpg` in local Python 3.13 env)
+- **Frontend** `npm run build` succeeds (Vite production bundle)
+- **Skipped locally:** `make up`, `portfolio-ready`, `index-rag`, `index-graph-communities` — Meridian `docker compose` stack not running (Neo4j/Qdrant/Kafka for Meridian)
+
+### Decisions made
+- None new (merge-only session)
+
+### Blockers
+- Mac: `brew install libomp` for full xgboost test collection
+- `pip install asyncpg` (or project venv) for Timescale writer unit test
+
+### Next session starts with
+1. `make up` → `make portfolio-ready` → `make index-rag` → `make index-graph-communities`
+2. Deploy per `docs/DEPLOY_QUICKSTART.md` (Railway API + Vercel frontend + Aura Neo4j)
+3. Record demo: `scripts/record_demo.sh` / `docs/assets/demo-placeholder.md`
+4. Phase D deferred: backtest dashboard UI, Kafka rescore worker, `tenant_id`
+
+[OWNER NOTES]
+-
+
