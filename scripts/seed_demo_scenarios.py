@@ -115,7 +115,7 @@ DEMO_EVENTS = [
 def main() -> None:
     load_dotenv()
     client = Neo4jClient(
-        uri=os.getenv("NEO4J_URI", "bolt://localhost:7687"),
+        uri=os.getenv("NEO4J_URI", "bolt://localhost:7688"),
         username=os.getenv("NEO4J_USER", "neo4j"),
         password=os.getenv("NEO4J_PASSWORD", "meridian_password"),
     )

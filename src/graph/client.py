@@ -41,7 +41,7 @@ class Neo4jClient:
             max_connection_pool_size: Connection pool size
             connection_timeout: Connection timeout in seconds
         """
-        self.uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7687")
+        self.uri = uri or os.getenv("NEO4J_URI", "bolt://localhost:7688")
         self.username = username or os.getenv("NEO4J_USER", "neo4j")
         self.password = password or os.getenv("NEO4J_PASSWORD", "password")
         self.max_pool_size = max_connection_pool_size

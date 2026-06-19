@@ -39,7 +39,7 @@ variable "api_desired_count" {
 variable "neo4j_uri" {
   description = "Neo4j database URI"
   type        = string
-  default     = "bolt://localhost:7687"
+  default     = "bolt://localhost:7688"
 }
 
 variable "neo4j_user" {
