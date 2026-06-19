@@ -8,9 +8,11 @@ import sys
 from pathlib import Path
 
 import structlog
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+load_dotenv(ROOT / ".env")
 
 from src.api.routes.intelligence_extended import BACKTEST_SCENARIOS  # noqa: E402
 from src.api.routes.simulation import DEMO_SCENARIOS  # noqa: E402
