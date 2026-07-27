@@ -9,9 +9,11 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import structlog
+from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+load_dotenv(ROOT / ".env")
 
 from src.graph import get_neo4j_client  # noqa: E402
 from src.intelligence.graph_embeddings import _fetch_supplier_subgraph  # noqa: E402

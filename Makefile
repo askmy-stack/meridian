@@ -1,10 +1,11 @@
-.PHONY: help dev up down test test-unit test-unit-fast test-integration lint format seed validate-env clean demo \
+.PHONY: help dev up up-coexist down down-coexist test test-unit test-unit-fast test-integration lint format seed validate-env clean demo \
 	fetch-wgi portfolio-ready seed-erp pipeline-batch check-deploy rescore-recent \
 	train-tgn backtest-scri collect-causal-pairs
 
 PY ?= python3
 PIP ?= pip
 COMPOSE ?= docker compose
+COMPOSE_COEXIST := $(COMPOSE) -f docker-compose.yml -f docker-compose.coexist.yml
 
 help:  ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
@@ -17,8 +18,17 @@ up:  ## Start docker compose stack
 	@sleep 5
 	@$(MAKE) validate-env
 
+up-coexist:  ## Start stack on alternate ports (Cortex / other stacks on 5433, 6333, 9092)
+	$(COMPOSE_COEXIST) up -d
+	@echo "Waiting for services (coexist ports: Kafka 9094, Postgres 5435, Timescale 5434, Qdrant 6335)..."
+	@sleep 8
+	@$(MAKE) validate-env
+
 down:  ## Stop docker compose stack
 	$(COMPOSE) down
+
+down-coexist:  ## Stop coexist stack
+	$(COMPOSE_COEXIST) down
 
 restart: down up  ## Restart stack
 
