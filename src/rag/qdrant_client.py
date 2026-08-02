@@ -137,5 +137,8 @@ def get_qdrant_store() -> QdrantStore:
     """Singleton Qdrant store."""
     global _store
     if _store is None:
+        from .env import ensure_rag_env
+
+        ensure_rag_env()
         _store = QdrantStore()
     return _store

@@ -8,10 +8,12 @@ from typing import Any, Dict, List, Optional
 import structlog
 
 from .collections import RagCollection, upsert_documents
+from .env import REPO_ROOT, ensure_rag_env
 
 logger = structlog.get_logger(__name__)
 
-ROOT = Path(__file__).resolve().parents[2]
+ensure_rag_env()
+ROOT = REPO_ROOT
 METRICS_PATH = ROOT / "docs" / "METRICS.md"
 LIMITATIONS_PATH = ROOT / "docs" / "LIMITATIONS.md"
 CAUSAL_SCOPE_PATH = ROOT / "docs" / "CAUSAL_SCOPE.md"
