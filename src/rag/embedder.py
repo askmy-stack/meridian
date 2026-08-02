@@ -84,5 +84,8 @@ def get_embedder() -> Embedder:
     """Singleton embedder."""
     global _embedder
     if _embedder is None:
+        from .env import ensure_rag_env
+
+        ensure_rag_env()
         _embedder = Embedder()
     return _embedder
