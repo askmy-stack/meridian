@@ -70,6 +70,28 @@ Open **http://localhost:5173**
 | http://localhost:8002/docs | API |
 | http://localhost:7475 | Neo4j Browser |
 
+
+### Kafka → Neo4j loaders (optional)
+
+With the full compose stack, conflict and vessel consumers load Kafka topics into Neo4j:
+
+```bash
+docker compose up -d kafka zookeeper neo4j graph-loader vessel-loader
+```
+
+| Service | Consumer | Writes |
+|---------|----------|--------|
+| `graph-loader` | `python -m src.consumers graph-loader` | `:Event` nodes from GDELT/conflict topics |
+| `vessel-loader` | `python -m src.consumers vessel-loader` | `:Vessel` nodes (+ chokepoint links) from AIS topics |
+| `rag-indexer` | `python -m src.consumers rag-indexer` | Qdrant embeddings from conflict events |
+
+Local one-shot (without compose services):
+
+```bash
+make consume-graph    # or: python -m src.consumers graph-loader
+make consume-vessel   # or: python -m src.consumers vessel-loader
+```
+
 ### ERP tier-N demo (optional)
 
 ```bash
