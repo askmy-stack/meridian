@@ -13,7 +13,30 @@ env:
   ECS_CLUSTER: meridian-dev
   ECS_SERVICE_API: meridian-api-dev
 
+
 jobs:
+  # Soft-gate deploy jobs: missing AWS secrets must not fail the required Test job.
+  aws-credentials:
+    name: AWS credentials check
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      present: ${{ steps.check.outputs.present }}
+    steps:
+    - name: Detect AWS secrets
+      id: check
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        if [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+          echo "present=true" >> "$GITHUB_OUTPUT"
+          echo "AWS credentials configured — deploy jobs will run."
+        else
+          echo "present=false" >> "$GITHUB_OUTPUT"
+          echo "AWS credentials not configured — skipping Terraform/ECR/ECS jobs."
+        fi
+
   test:
     name: Test
     runs-on: ubuntu-latest
@@ -90,8 +113,8 @@ jobs:
   build-and-push-api:
     name: Build and Push API
     runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    needs: [test, aws-credentials]
+    if: github.ref == 'refs/heads/main' && needs.aws-credentials.outputs.present == 'true'
 
     steps:
     - name: Checkout code
@@ -126,8 +149,8 @@ jobs:
   build-and-push-frontend:
     name: Build and Push Frontend
     runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    needs: [test, aws-credentials]
+    if: github.ref == 'refs/heads/main' && needs.aws-credentials.outputs.present == 'true'
 
     steps:
     - name: Checkout code
@@ -174,7 +197,7 @@ jobs:
     name: Deploy to ECS
     runs-on: ubuntu-latest
     needs: [build-and-push-api, build-and-push-frontend]
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && needs.build-and-push-api.result == 'success' && needs.build-and-push-frontend.result == 'success'
 
     steps:
     - name: Checkout code
@@ -215,7 +238,8 @@ jobs:
   terraform:
     name: Terraform
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    needs: [aws-credentials]
+    if: github.ref == 'refs/heads/main' && needs.aws-credentials.outputs.present == 'true'
 
     steps:
     - name: Checkout code
