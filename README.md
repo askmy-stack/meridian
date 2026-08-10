@@ -192,3 +192,8 @@ Training labels: `data/disruption_labels.csv` — 50+ public disruption case stu
 **Phase A (real data):** TimescaleDB score history, link confidence, batch rescore — see [docs/REAL_DATA_PHASE_A.md](docs/REAL_DATA_PHASE_A.md).
 
 ---
+
+### Frontend auth guard
+
+Protected dashboard routes use a `RequireAuth` wrapper (`frontend/src/components/RequireAuth.jsx`) that redirects to `/login` when no JWT is in `localStorage`.
+
