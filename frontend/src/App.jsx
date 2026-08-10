@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Layout } from './components/Layout';
+import { RequireAuth } from './components/RequireAuth';
 import { EntityDrawerProvider } from './context/EntityDrawerContext';
 import { Dashboard } from './pages/Dashboard';
 import { NetworkView } from './pages/NetworkView';
@@ -24,6 +25,10 @@ const queryClient = new QueryClient({
   },
 });
 
+function Protected({ children }) {
+  return <RequireAuth>{children}</RequireAuth>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -31,16 +36,16 @@ function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Layout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="network" element={<NetworkView />} />
-              <Route path="map" element={<RiskMapView />} />
-              <Route path="timeline" element={<TimelineView />} />
-              <Route path="sectors" element={<SectorsView />} />
-              <Route path="suppliers" element={<SuppliersView />} />
-              <Route path="simulate" element={<SimulationView />} />
-              <Route path="copilot" element={<CopilotView />} />
-              <Route path="ops/graph-health" element={<GraphHealthView />} />
-              <Route path="alerts" element={<AlertsView />} />
+              <Route index element={<Protected><Dashboard /></Protected>} />
+              <Route path="network" element={<Protected><NetworkView /></Protected>} />
+              <Route path="map" element={<Protected><RiskMapView /></Protected>} />
+              <Route path="timeline" element={<Protected><TimelineView /></Protected>} />
+              <Route path="sectors" element={<Protected><SectorsView /></Protected>} />
+              <Route path="suppliers" element={<Protected><SuppliersView /></Protected>} />
+              <Route path="simulate" element={<Protected><SimulationView /></Protected>} />
+              <Route path="copilot" element={<Protected><CopilotView /></Protected>} />
+              <Route path="ops/graph-health" element={<Protected><GraphHealthView /></Protected>} />
+              <Route path="alerts" element={<Protected><AlertsView /></Protected>} />
               <Route path="login" element={<LoginView />} />
             </Route>
           </Routes>
